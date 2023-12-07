@@ -17,6 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
 
 import Packet.PacketMessage;
@@ -138,9 +139,11 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	    contentPane.add(create_room_btn); // 채팅방 생성
 
 	    JScrollPane scrollPane = new JScrollPane();
+	    scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 	    scrollPane.setBounds(142, 16, 340, 363);
 	    contentPane.add(scrollPane);
-	    scrollPane.setColumnHeaderView(chatArea); // 채팅창
+	    scrollPane.setViewportView(chatArea); // 채팅창
 	    chatArea.setEditable(false);
 
 	    msg_tf = new JTextField();
@@ -180,7 +183,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	         // handleCreateRoomButtonClick();
 	     } else if (e.getSource() == send_btn) {
 	    	 System.out.println("send button clicked");
-	         // handleSendButtonClick();
+	         handleSendButtonClick();
 	     } else if (e.getSource() == chatQuit_btn) {
 	    	 System.out.println("chat quit clicked");
 	         handleChatQuitButtonClick();
@@ -221,6 +224,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 			selectClient = new SelectClient(ip, port);
 			selectClient.setUser_List(User_List);
 			selectClient.setRoom_List(Room_List);
+			selectClient.setChatArea(chatArea);
 			selectClient.setOmokClient(this);
 			clientThread = new Thread(selectClient);
 			clientThread.start();
@@ -254,6 +258,23 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 		this.setVisible(false);
 		this.Login_GUI.setVisible(true);
 	}
+	
+	private void handleSendButtonClick() {
+		sendChat();
+	}
+	
+	private void sendChat() {
+		String chatMsg = msg_tf.getText().trim();
+		
+		if (chatMsg.isEmpty())
+			return;
+		
+		PacketMessage msg = new PacketMessage();
+		msg.makeChatReq(new UserInfo(id), chatMsg);
+		selectClient.sendPacket(msg);
+		msg_tf.setText("");
+        msg_tf.requestFocus();
+	}
 
 	private boolean isEmpty(JTextField field) {
 		return field.getText().trim().isEmpty();
@@ -270,11 +291,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 
 	public void keyReleased(KeyEvent e) {
 		if (e.getKeyCode() == 10) {
-			if (!My_Room.isEmpty()) {
-				// send_Msg("Chatting/" + My_Room + "/" + msg_tf.getText().trim());
-	            msg_tf.setText("");
-	            msg_tf.requestFocus();
-	        }
+			sendChat();
 	    }
 	}
 

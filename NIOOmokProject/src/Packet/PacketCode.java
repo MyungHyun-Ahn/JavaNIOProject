@@ -11,6 +11,7 @@ public class PacketCode {
 	public final static short LEAVEUSER_RES = 111;		// USER가 연결이 끊겼을 때
 	public final static short CHAT_REQ = 12;			// 채팅 요청
 	public final static short CHAT_RES = 13;			// 채팅 응답
+	public final static short CHAT_NOTI = 120;			// 채팅 broadcast
 	public final static short USERLIST_RES = 14;		// 유저 목록 요청
 	public final static short ROOMLIST_RES = 15;		// 방 목록 요청
 	

@@ -8,6 +8,7 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -15,6 +16,10 @@ import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
+
+import Packet.PacketCode;
+import Packet.PacketMessage;
+import Packet.UserInfo;
 
 public class OmokServer extends JFrame implements ActionListener {
 	
@@ -155,7 +160,7 @@ public class OmokServer extends JFrame implements ActionListener {
 	    }
 	    else if (e.getSource() == noteBtn) {
 	    	System.out.println("note button clicked");
-	    	// note();
+	    	handleNoteBtn();
 	    }
 	    else if (e.getSource() == roomMemCheck) {
 	    	System.out.println("Room Member Check button clicked");
@@ -180,5 +185,26 @@ public class OmokServer extends JFrame implements ActionListener {
 		selectServer.stopServer();
 		startBtn.setEnabled(true);
 		stopBtn.setEnabled(false);
+	}
+	
+	// 서버에서 보내는 쪽지 : 운영자 쪽지
+	private void handleNoteBtn() {
+		String user = (String) clientList.getSelectedValue();
+		String note = JOptionPane.showInputDialog("보낼 메시지");
+		
+		if (note == null)
+			return;
+		
+		PacketMessage msg = new PacketMessage();
+		UserInfo sender = new UserInfo("admin");
+		UserInfo target = new UserInfo(user);
+		msg.makeNoteRes(PacketCode.SUCCESS, sender, target, note);
+		
+		try {
+			selectServer.sendPacket(selectServer.getUserChannel(user), msg);
+		}
+		catch (Exception e) {
+			selectServer.Log("Error : NoteBtn 대상이 없습니다.");
+		}
 	}
 }

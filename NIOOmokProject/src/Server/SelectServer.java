@@ -1,5 +1,6 @@
 package Server;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -20,6 +21,8 @@ import java.util.Vector;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 import Packet.PacketCode;
 import Packet.PacketMessage;
@@ -27,6 +30,9 @@ import Packet.RoomInfo;
 import Packet.UserInfo;
 import Util.CastingUtil;
 import Util.SerializeUtil;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SelectServer implements Runnable {
 	private Selector selector; // Non-Blocking 소켓 통신을 위한 Selector
@@ -45,6 +51,8 @@ public class SelectServer implements Runnable {
 	private JList<String> roomMemList;
 	
 	private JLabel conUsersLabel;
+	
+	private static final ExecutorService threadPool = Executors.newFixedThreadPool(4); // 스레드 풀 (스레드 개수를 4개로 제한) 
 	
 	// 생성자
 	public SelectServer(int portNum, JTextArea textArea) {
@@ -69,7 +77,7 @@ public class SelectServer implements Runnable {
 		}
 		catch (Exception e) {
 			e.printStackTrace();
-			Log("Server Init Error! : " + LocalDateTime.now());
+			LogError("Server Init : " + LocalDateTime.now());
 			return;
 		}
 	}
@@ -98,7 +106,7 @@ public class SelectServer implements Runnable {
 				while (keys.hasNext()) {
 					SelectionKey key = keys.next();
 					
-					if (key.isAcceptable())
+					if (key.isAcceptable()) // Accept는 메인 스레드에서 진행
 						Accept(key);
 					
 					if (key.isReadable())
@@ -119,8 +127,7 @@ public class SelectServer implements Runnable {
 				}
 			}
 		}
-		catch(Exception e) {
-			e.printStackTrace();
+		catch(Exception e) { // 서버 종료 버튼 클릭
 			Log("Server Shutdown");
 		}
 	}
@@ -137,8 +144,7 @@ public class SelectServer implements Runnable {
 			Log(channel.toString() + " 클라이언트가 접속했습니다.");
 		}
 		catch (Exception e) {
-			e.printStackTrace();
-			Log("클라이언트 접속 실패! : " + LocalDateTime.now());
+			LogError("클라이언트 접속 실패! : " + LocalDateTime.now());
 		}
 	}
 	
@@ -164,7 +170,7 @@ public class SelectServer implements Runnable {
 				}
 				catch (Exception e) {
 					e.printStackTrace();
-					Log("클라이언트 종료 실패! : " + address);
+					LogError("클라이언트 종료 실패! : " + address);
 					return;
 				}
 			}
@@ -198,7 +204,7 @@ public class SelectServer implements Runnable {
 			channel.register(selector, SelectionKey.OP_WRITE); // 비동기 WRITE 예약
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogError("OP_WRITE 실패");
 			return;
 		}	
 		
@@ -228,9 +234,8 @@ public class SelectServer implements Runnable {
 			case PacketCode.NOTE_REQ:
 				handleNoteReq(channel, msg);
 				break;
-			
 			case PacketCode.CHAT_REQ:
-				
+				handleChatReq(channel, msg);
 				break;
 			
 			}
@@ -241,7 +246,7 @@ public class SelectServer implements Runnable {
 			channel.register(selector, SelectionKey.OP_READ);
 		} catch (ClosedChannelException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogError("OP_READ 실패");
 		}
 	}
 	
@@ -310,7 +315,7 @@ public class SelectServer implements Runnable {
 		PacketMessage msgRes = new PacketMessage();
 		
 		if (senderInfo == null || targetInfo == null) {
-			Log(senderInfo.getName() + "가 보낸 쪽지 실패");
+			LogError(senderInfo.getName() + "가 보낸 쪽지 실패");
 			msgRes.makeNoteRes(PacketCode.FAILURE, senderInfo, targetInfo, msg.getNoteMsg());
 			return;
 		}
@@ -318,6 +323,32 @@ public class SelectServer implements Runnable {
 		Log(senderInfo.getName() + "가 " + targetInfo.getName() + "에게 쪽지 전송");
 		msgRes.makeNoteRes(PacketCode.SUCCESS, senderInfo, targetInfo, msg.getNoteMsg());
 		sendResPacket(targetInfo.getSocketChannel(), msgRes);
+	}
+	
+	private void handleChatReq(SocketChannel channel, PacketMessage msg) {
+		try {
+			PacketMessage resMsg = new PacketMessage();
+			resMsg.makeChatRes(PacketCode.SUCCESS);
+			sendResPacket(channel, resMsg);
+		}
+		catch (Exception e) { // 혹시나 실패하면 FAILURE 패킷
+			LogError(msg.getUserInfo().getName() + "가 보낸 채팅 수신 실패");
+			PacketMessage resMsg = new PacketMessage();
+			resMsg.makeChatRes(PacketCode.FAILURE);
+			sendResPacket(channel, resMsg);
+			return;
+		}
+		
+		Log(msg.getUserInfo().getName() + "가 보낸 채팅 수신 성공");
+		PacketMessage chatPacket = new PacketMessage();
+		String resStr = msg.getUserInfo().getName() + " : " + msg.getChatMsg() + "\n";
+		chatPacket.makeChatNoti(resStr);
+		broadcast(null, chatPacket); // 모두에게 전송
+	}
+	
+	// 외부 호출용
+	public void sendPacket(SocketChannel channel, PacketMessage msg) {
+		sendResPacket(channel, msg);
 	}
 	
 	// 응답 패킷 전달 혹은 targetChannel에 전달
@@ -329,7 +360,7 @@ public class SelectServer implements Runnable {
 			buf.rewind(); // bytebuf 의 position 초기화 
 		} 
 		catch(Exception e) {
-			e.printStackTrace();
+			LogError("sendResPacket");
 		}
 		
 		buf.clear();
@@ -350,7 +381,7 @@ public class SelectServer implements Runnable {
 			}
 		}
 		catch(Exception e) {
-			e.printStackTrace();
+			LogError("broadcast");
 		}
 		
 		buf.clear();
@@ -386,8 +417,12 @@ public class SelectServer implements Runnable {
 	}
 	
 	// 로그 textArea에 추가
-	private void Log(String str) {
-		textArea.append(str + "\n");
+	public void Log(String str) {
+		textArea.append("INFO : " + str + "\n");
+	}
+	
+	public void LogError(String str) {
+		textArea.append("ERROR : "+ str + "\n");
 	}
 	
 	public void stopServer() {
@@ -395,11 +430,20 @@ public class SelectServer implements Runnable {
 			selector.close();
 			serverChannel.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogError("서버가 비정상 종료");
 		}
 	}
-
+	
+	public SocketChannel getUserChannel(String id) {
+		UserInfo ret = null;
+		for (UserInfo u : users) {
+			if (u.getName().equals(id))
+				ret = u;
+		}
+		
+		return ret.getSocketChannel();
+	}
+	
 	public void setClientList(JList<String> clientList) {
 		this.clientList = clientList;
 	}

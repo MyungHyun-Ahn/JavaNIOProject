@@ -14,6 +14,7 @@ import java.util.Vector;
 
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.JTextArea;
 
 import Packet.PacketCode;
 import Packet.PacketMessage;
@@ -33,6 +34,7 @@ public class SelectClient implements Runnable  {
 	private JList<String> User_List;
 	private JList<String> Room_List;
 	
+	private JTextArea chatArea;
 	
 	private OmokClient omokClient;
 	Vector<String> user_list = new Vector<>(); // 가입자 목록
@@ -143,6 +145,11 @@ public class SelectClient implements Runnable  {
 		case PacketCode.NOTE_RES:
 			handleNoteRes(msg);
 			break;
+		case PacketCode.CHAT_RES:
+			break;
+		case PacketCode.CHAT_NOTI:
+			handleChatNoti(msg);
+			break;
 		case PacketCode.JOINROOM_RES:
 			break;
 		}
@@ -193,6 +200,10 @@ public class SelectClient implements Runnable  {
 		
 	}
 	
+	private void handleChatNoti(PacketMessage msg) {
+		chatArea.append(msg.getChatMsg());
+	}
+	
 	public void sendPacket(PacketMessage msg) {
 		sender.sendPacket(msg);
 		System.out.println("Packet enqueue : " + msg.getUserInfo().getName());
@@ -227,5 +238,9 @@ public class SelectClient implements Runnable  {
 
 	public void setOmokClient(OmokClient omokClient) {
 		this.omokClient = omokClient;
+	}
+
+	public void setChatArea(JTextArea chatArea) {
+		this.chatArea = chatArea;
 	}
 }

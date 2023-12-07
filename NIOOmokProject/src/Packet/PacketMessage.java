@@ -37,6 +37,12 @@ public class PacketMessage implements Serializable {
 		serializedBytes = SerializeUtil.serialize(this);
 	}
 	
+	public void makeChatNoti(String msg) {
+		setMsgCode(PacketCode.CHAT_NOTI);
+		setChatMsg(msg);
+		serializedBytes = SerializeUtil.serialize(this);
+	}
+	
 	public void makeLoginReq(UserInfo userInfo) {
 		setMsgCode(PacketCode.LOGIN_REQ);
 		setUserInfo(userInfo);
