@@ -40,8 +40,8 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	private JButton exitroom_btn = new JButton("탈퇴");
 	private JButton create_room_btn = new JButton("방만들기");
 	private JButton send_btn = new JButton("전송");
-	private JList<String> User_List = new JList(); // 전체 접속자 리스트
-	private JList<String> Room_List = new JList(); // 전체 방 목록 리스트
+	private JList<String> User_List = new JList<>(); // 전체 접속자 리스트
+	private JList<String> Room_List = new JList<>(); // 전체 방 목록 리스트
 	private JTextArea chatArea = new JTextArea(); // 채팅창 변수
 	private JButton chatQuit_btn = new JButton("채팅종료");
 
@@ -101,7 +101,6 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	    login_btn.setBounds(22, 291, 227, 23);
 	    login_pane.add(login_btn);
 	    Login_GUI.setVisible(true);
-	    this.setVisible(true);
 	}
 
 	private void initializeMainGUI() {
@@ -150,7 +149,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	    msg_tf.setColumns(10);
 	    send_btn.setBounds(412, 386, 70, 23);
 	    contentPane.add(send_btn); // 메시지 전송
-	    this.setVisible(true);
+	    this.setVisible(false);
 	}
 	
 	private void addActionListeners() {
@@ -211,6 +210,9 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 
 		network();
 		
+		// Main GUI 표시 및 Login GUI 숨기기
+		this.setVisible(true);
+		this.Login_GUI.setVisible(false);
 		setTitle("사용자: " + id);
 	}
 	
@@ -249,6 +251,8 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	private void handleChatQuitButtonClick() {
 		selectClient.stopClient();
 		selectClient = null;
+		this.setVisible(false);
+		this.Login_GUI.setVisible(true);
 	}
 
 	private boolean isEmpty(JTextField field) {
