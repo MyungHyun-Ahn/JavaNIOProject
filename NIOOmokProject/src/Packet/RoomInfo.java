@@ -5,18 +5,14 @@ import java.util.ArrayList;
 
 public class RoomInfo implements Serializable {
 	private static final long serialVersionUID = 1010L;
-	private int index;
+	public final static int MAX_USER_COUNT = 2; // 2명까지 입장 가능
+	
 	private String roomName;
 	
-	private ArrayList<UserInfo> userList;
+	private transient ArrayList<UserInfo> userList;
 	
-	// 방 생성 요청 / 입장 전용
+	// 방 생성 요청 전용
 	public RoomInfo(String roomName) {
-		this.roomName = roomName;
-	}
-	
-	public RoomInfo(int index, String roomName) {
-		this.index = index;
 		this.roomName = roomName;
 		
 		userList = new ArrayList<UserInfo>();
@@ -30,16 +26,8 @@ public class RoomInfo implements Serializable {
 		userList.remove(userInfo);
 	}
 	
-	public int getIndex() {
-		return this.index;
-	}
-	
 	public String getName() {
 		return this.roomName;
-	}
-	
-	public void setIndex(int index) {
-		this.index = index;
 	}
 	
 	public void setName(String roomName) {

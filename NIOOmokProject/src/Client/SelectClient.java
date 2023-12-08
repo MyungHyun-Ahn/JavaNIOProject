@@ -31,14 +31,16 @@ public class SelectClient implements Runnable  {
 	private SocketSender sender;
 	private Thread senderThread;
 	
-	private JList<String> User_List;
-	private JList<String> Room_List;
+	private JList<String> userList;
+	private JList<String> roomList;
 	
 	private JTextArea chatArea;
 	
 	private OmokClient omokClient;
-	Vector<String> user_list = new Vector<>(); // 가입자 목록
-	Vector<String> room_list = new Vector<>(); // 채팅방 목록
+	Vector<String> userVc = new Vector<String>(); // 가입자 목록
+	Vector<String> roomVc = new Vector<String>(); // 채팅방 목록
+	
+	String roomName = ""; // 현재 가입 중인 방 이름
 	
 	public SelectClient(String host, int port) {
 		try {
@@ -133,14 +135,15 @@ public class SelectClient implements Runnable  {
 		
 		switch (msg.getMsgCode())
 		{
+		// 기본 패킷 처리
 		case PacketCode.LOGIN_RES:
 			handleLoginRes(msg);
 			break;
-		case PacketCode.ENTERUSER_RES:
-			handleEnterUserRes(msg);
+		case PacketCode.ENTERUSER_INFO:
+			handleEnterUserInfo(msg);
 			break;
-		case PacketCode.LEAVEUSER_RES:
-			handleLeaveUserRes(msg);
+		case PacketCode.LEAVEUSER_INFO:
+			handleLeaveUserInfo(msg);
 			break;
 		case PacketCode.NOTE_RES:
 			handleNoteRes(msg);
@@ -150,7 +153,25 @@ public class SelectClient implements Runnable  {
 		case PacketCode.CHAT_NOTI:
 			handleChatNoti(msg);
 			break;
-		case PacketCode.JOINROOM_RES:
+		case PacketCode.ROOMINFO_INFO:
+			handleRoomInfoInfo(msg);
+			break;
+		case PacketCode.ROOMDEL_INFO:
+			break;
+			
+		// 방 관련 패킷 처리
+		case PacketCode.CREATEROOM_RES:
+			handleCreateRoomRes(msg);
+			break;
+		case PacketCode.ENTERROOM_RES:
+			break;
+		case PacketCode.LEAVEROOM_RES:
+			break;
+		case PacketCode.ROOMUSERENTER_INFO:
+			break;
+		case PacketCode.ROOMUSERLEAVE_INFO:
+			break;
+		case PacketCode.ROOMCHAT_RES:
 			break;
 		}
 		
@@ -162,13 +183,13 @@ public class SelectClient implements Runnable  {
 		
 		bytes = null;
     }
-	
+
 	private void handleLoginRes(PacketMessage msg) {
 		short statusCode = msg.getStatusCode();
 		if (statusCode == PacketCode.SUCCESS) {
 			System.out.println("login success!");
-			user_list.add(msg.getUserInfo().getName());
-			User_List.setListData(user_list);
+			userVc.add(msg.getUserInfo().getName());
+			userList.setListData(userVc);
 		}
 		if (statusCode == PacketCode.CONFLICT) {
 			System.out.println("중복된 아이디");
@@ -176,16 +197,16 @@ public class SelectClient implements Runnable  {
 		}
 	}
 	
-	private void handleLeaveUserRes(PacketMessage msg) {
+	private void handleLeaveUserInfo(PacketMessage msg) {
 		String deleteUser = msg.getUserInfo().getName();
 		
-		user_list.remove(deleteUser);
-		User_List.setListData(user_list);
+		userVc.remove(deleteUser);
+		userList.setListData(userVc);
 	}
 	
-	private void handleEnterUserRes(PacketMessage msg) {
-		user_list.add(msg.getUserInfo().getName());
-		User_List.setListData(user_list);
+	private void handleEnterUserInfo(PacketMessage msg) {
+		userVc.add(msg.getUserInfo().getName());
+		userList.setListData(userVc);
 	}
 	
 	private void handleNoteRes(PacketMessage msg) {
@@ -202,6 +223,30 @@ public class SelectClient implements Runnable  {
 	
 	private void handleChatNoti(PacketMessage msg) {
 		chatArea.append(msg.getChatMsg());
+	}
+	
+	private void handleRoomInfoInfo(PacketMessage msg) {
+		// TODO Auto-generated method stub
+		String newRoomName = msg.getRoomInfo().getName();
+		roomVc.add(newRoomName);
+		roomList.setListData(roomVc);
+	}
+	
+	private void handleCreateRoomRes(PacketMessage msg) {
+		short statusCode = msg.getStatusCode();
+		if (statusCode == PacketCode.CONFLICT) {
+			JOptionPane.showMessageDialog(omokClient, "방 이름 중복", "CONFLICT", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		else if (statusCode == PacketCode.SUCCESS) {
+			// 방 생성 성공
+			roomName = msg.getRoomInfo().getName();
+			
+			roomVc.add(roomName);
+			roomList.setListData(roomVc);
+			
+			JOptionPane.showMessageDialog(omokClient, "방 생성 성공", roomName + " 생성", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
 	
 	public void sendPacket(PacketMessage msg) {
@@ -221,19 +266,19 @@ public class SelectClient implements Runnable  {
 	
 	// Getter Setter
 	public JList<String> getUser_List() {
-		return User_List;
+		return userList;
 	}
 
 	public void setUser_List(JList<String> user_List) {
-		this.User_List = user_List;
+		this.userList = user_List;
 	}
 
 	public JList<String> getRoom_List() {
-		return Room_List;
+		return roomList;
 	}
 
 	public void setRoom_List(JList<String> room_List) {
-		this.Room_List = room_List;
+		this.roomList = room_List;
 	}
 
 	public void setOmokClient(OmokClient omokClient) {

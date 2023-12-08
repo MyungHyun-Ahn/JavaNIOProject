@@ -21,6 +21,7 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
 
 import Packet.PacketMessage;
+import Packet.RoomInfo;
 import Packet.UserInfo;
 
 public class OmokClient extends JFrame implements ActionListener, KeyListener {
@@ -180,7 +181,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	         // handleJoinRoomButtonClick();
 	     } else if (e.getSource() == create_room_btn) {
 	    	 System.out.println("create room button clicked");
-	         // handleCreateRoomButtonClick();
+	         handleCreateRoomButtonClick();
 	     } else if (e.getSource() == send_btn) {
 	    	 System.out.println("send button clicked");
 	         handleSendButtonClick();
@@ -192,7 +193,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	         // handleExitRoomButtonClick();
 	     }
 	}
-	
+
 	private void handleLoginButtonClick() {
 		// TODO Auto-generated method stub
 		if (isEmpty(ip_tf)) {
@@ -284,7 +285,19 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 		field.setText(text);
 	    field.requestFocus();
 	}
-
+	
+	private void handleCreateRoomButtonClick() {
+		// TODO Auto-generated method stub
+		String roomName = JOptionPane.showInputDialog("방 이름");
+		if (roomName == null)
+			return;
+		
+		PacketMessage msg = new PacketMessage();
+		msg.makeCreateRoomReq(new RoomInfo(roomName), new UserInfo(id));
+		selectClient.sendPacket(msg);
+		
+		System.out.println("Send Create Room Packet : RoomName = " + roomName);
+	}
 
 	public void keyPressed(KeyEvent e) {
 	}

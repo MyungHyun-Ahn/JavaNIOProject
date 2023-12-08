@@ -52,7 +52,7 @@ public class SelectServer implements Runnable {
 	
 	private JLabel conUsersLabel;
 	
-	private static final ExecutorService threadPool = Executors.newFixedThreadPool(4); // 스레드 풀 (스레드 개수를 4개로 제한) 
+	// private static final ExecutorService threadPool = Executors.newFixedThreadPool(4); // 스레드 풀 (스레드 개수를 4개로 제한) 
 	
 	// 생성자
 	public SelectServer(int portNum, JTextArea textArea) {
@@ -228,6 +228,7 @@ public class SelectServer implements Runnable {
 			
 			switch (msg.getMsgCode())
 			{
+			// 기본 요청 패킷 처리
 			case PacketCode.LOGIN_REQ:
 				handleLoginReq(channel, msg);
 				break;
@@ -237,7 +238,11 @@ public class SelectServer implements Runnable {
 			case PacketCode.CHAT_REQ:
 				handleChatReq(channel, msg);
 				break;
-			
+				
+			// 방 관련 요청 패킷 처리
+			case PacketCode.CREATEROOM_REQ:
+				handleCreateRoomReq(channel, msg);
+				break;
 			}
 		}
 		
@@ -249,46 +254,51 @@ public class SelectServer implements Runnable {
 			LogError("OP_READ 실패");
 		}
 	}
-	
+
 	private void handleLoginReq(SocketChannel channel, PacketMessage msg) {
-		PacketMessage resMsg = null;
-		 UserInfo userInfo = msg.getUserInfo();
+		PacketMessage resMsg = new PacketMessage();
+		UserInfo userInfo = msg.getUserInfo();
 		 
-		 for (UserInfo u : users) {
-			 if (u.getName().equals(userInfo.getName())) { // 중복 닉네임 거르기
-				 resMsg = new PacketMessage();
-				 resMsg.makeLoginRes(PacketCode.CONFLICT, userInfo);
-				 sendResPacket(channel, resMsg); // response 패킷을 보낸다!
-				 break;
-			 }
-		 }
-		 
-		 if (resMsg == null) {
-			 userInfo.setSocketChannel(channel); // 채널을 저장
-			 Log("Enter User : " + userInfo.getName());
-			 users.add(userInfo); // userInfo를 저장
-			 userVc.add(userInfo.getName());
-			 clientList.setListData(userVc);
-			 conUsersLabel.setText(userVc.size() + "명");
-			 resMsg = new PacketMessage();
-			 resMsg.makeLoginRes(PacketCode.SUCCESS, userInfo);
-			 sendResPacket(channel, resMsg); // response 패킷을 보낸다!
-			 
-			 for (UserInfo u : users) {
-				 if (u.getName().equals(userInfo.getName()))
-					 continue;
+		if (isConflictUser(userInfo.getName())) { // 중복 닉네임 거르기
+			resMsg.makeLoginRes(PacketCode.CONFLICT, userInfo);
+			sendResPacket(channel, resMsg); // response 패킷을 보낸다!
+			return;
+		}
+
+		
+		// 유저 입장 허락
+		userInfo.setSocketChannel(channel); // 채널을 저장
+		Log("Enter User : " + userInfo.getName());
+		users.add(userInfo); // userInfo를 저장
+		userVc.add(userInfo.getName());
+		clientList.setListData(userVc);
+		conUsersLabel.setText(userVc.size() + "명");
+		resMsg.makeLoginRes(PacketCode.SUCCESS, userInfo);
+		sendResPacket(channel, resMsg); // response 패킷을 보낸다!
+			
+		// 접속 중인 유저 정보 전송
+		for (UserInfo u : users) {
+			if (u.getName().equals(userInfo.getName()))
+				continue;
 				 
-				 PacketMessage addUser = new PacketMessage();
-				 addUser.makeEnterUserRes(u);
-				 sendResPacket(channel, addUser);
-			 }
-			 
-			 // 새로운 유저가 입장했음을 알림 | 유저 리스트 전송
-			 // broadcast
-			 PacketMessage enterUserRes = new PacketMessage(); 
-			 enterUserRes.makeEnterUserRes(userInfo);
-			 broadcast(channel, enterUserRes);
-		 }
+			PacketMessage addUser = new PacketMessage();
+			addUser.makeEnterUserInfo(u);
+			sendResPacket(channel, addUser);
+		}
+		
+		// 생성되어 있는 방 정보 전송
+		for (RoomInfo r : rooms) {
+			PacketMessage addRoom = new PacketMessage();
+			addRoom.makeRoomInfoInfo(r);
+			sendResPacket(channel, addRoom);
+		}
+		
+		
+		// 새로운 유저가 입장했음을 알림 | 유저 리스트 전송
+		// broadcast
+		PacketMessage enterUserInfo = new PacketMessage(); 
+		enterUserInfo.makeEnterUserInfo(userInfo);
+		broadcast(channel, enterUserInfo);
 	}
 	
 	private void handleNoteReq(SocketChannel channel, PacketMessage msg) {
@@ -344,6 +354,58 @@ public class SelectServer implements Runnable {
 		String resStr = msg.getUserInfo().getName() + " : " + msg.getChatMsg() + "\n";
 		chatPacket.makeChatNoti(resStr);
 		broadcast(null, chatPacket); // 모두에게 전송
+	}
+	
+	private void handleCreateRoomReq(SocketChannel channel, PacketMessage msg) {
+		// TODO Auto-generated method stub
+		PacketMessage resMsg = new PacketMessage();
+		String roomName = msg.getRoomInfo().getName();
+		
+		if (isConflictRoom(roomName)) {
+			Log(roomName + " 방 이름 중복");
+			resMsg.makeCreateRoomRes(PacketCode.CONFLICT, null);
+			sendResPacket(channel, resMsg);
+			return;
+		}
+		
+		// 방 생성 가능!
+		
+		RoomInfo roomInfo = new RoomInfo(roomName);
+		
+		resMsg.makeCreateRoomRes(PacketCode.SUCCESS, roomInfo);
+		sendResPacket(channel, resMsg);
+		
+		rooms.add(roomInfo);
+		roomVc.add(roomName);
+		roomList.setListData(roomVc);
+		
+		// 유저 방 입장 시키기
+		UserInfo userInfo = getUserInfo(msg.getUserInfo().getName());
+		roomInfo.EnterUser(userInfo);
+		Log(roomInfo.getName() + " 방 생성");
+						
+		// 모든 유저에게 방 정보 전달
+		PacketMessage createRoomInfo = new PacketMessage();
+		createRoomInfo.makeRoomInfoInfo(roomInfo);
+		broadcast(channel, createRoomInfo);
+	}
+	
+	private boolean isConflictUser(String userName) {
+		for (UserInfo u : users) {
+			if (u.getName().equals(userName)) 
+				return true;
+		}
+		
+		return false;
+	}
+	
+	private boolean isConflictRoom(String roomName) {
+		for (RoomInfo r : rooms) {
+			if (r.getName().equals(roomName)) 
+				return true;
+		}
+		
+		return false;
 	}
 	
 	// 외부 호출용
@@ -402,7 +464,7 @@ public class SelectServer implements Runnable {
 		if (deleteUser == null)
 			return;
 		
-		msg.makeLeaveUserRes(deleteUser);
+		msg.makeLeaveUserInfo(deleteUser);
 		Log("Leave User : " + deleteUser.getName());
 		broadcast(channel, msg);
 		userVc.remove(deleteUser.getName());
@@ -442,6 +504,16 @@ public class SelectServer implements Runnable {
 		}
 		
 		return ret.getSocketChannel();
+	}
+	
+	public UserInfo getUserInfo(String id) {
+		UserInfo ret = null;
+		for (UserInfo u : users) {
+			if (u.getName().equals(id))
+				ret = u;
+		}
+		
+		return ret;
 	}
 	
 	public void setClientList(JList<String> clientList) {
