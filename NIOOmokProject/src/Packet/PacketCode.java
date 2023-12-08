@@ -37,7 +37,7 @@ public class PacketCode {
 	public final static short ROOMUSERLEAVE_INFO = 262; // 방 유저 퇴장 알림
 	
 	public final static short ROOMCHAT_REQ = 27;        // 방 채팅 요청
-	public final static short ROOMCHAT_RES = 28;		// 방 채팅 응답
+	public final static short ROOMCHAT_NOTI = 28;		// 방 채팅 응답
 	// public final static short ROOMUSERLIST_REQ = 22;	// 방 참여자 목록 요청
 	
 	// 3x 패킷 : 쪽지 관련
@@ -50,5 +50,6 @@ public class PacketCode {
 	public final static short SUCCESS = 200; 			// 성공
 	public final static short FAILURE = 500; 			// 실패
 	public final static short CONFLICT = 409;			// 중복
+	public final static short ISROOMFULL = 410;			// 방이 가득참
 	
 }

@@ -168,8 +168,8 @@ public class PacketMessage implements Serializable {
 		serializedBytes = SerializeUtil.serialize(this);
 	}
 	
-	public void makeRoomChatRes(short statusCode, RoomInfo roomInfo, UserInfo userInfo, String chatMsg) {
-		setMsgCode(PacketCode.ROOMCHAT_RES);
+	public void makeRoomChatNoti(short statusCode, RoomInfo roomInfo, UserInfo userInfo, String chatMsg) {
+		setMsgCode(PacketCode.ROOMCHAT_NOTI);
 		setRoomInfo(roomInfo);
 		setUserInfo(userInfo);
 		setChatMsg(chatMsg);

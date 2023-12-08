@@ -33,4 +33,12 @@ public class RoomInfo implements Serializable {
 	public void setName(String roomName) {
 		this.roomName = roomName;
 	}
+	
+	public boolean isRoomFull() {
+		return userList.size() >= 2;
+	}
+	
+	public ArrayList<UserInfo> getUserList() {
+		return userList;
+	}
 }

@@ -27,6 +27,8 @@ public class OmokServer extends JFrame implements ActionListener {
 	private JPanel contentPane;
 	private JTextField portTF;
 	
+	JScrollPane scrollPane;
+	
 	// JTextArea
 	private JTextArea textArea = new JTextArea();
 	
@@ -89,7 +91,7 @@ public class OmokServer extends JFrame implements ActionListener {
 		stopBtn.setEnabled(false);
 		contentPane.add(stopBtn);
 		
-		JScrollPane scrollPane = new JScrollPane();
+		scrollPane = new JScrollPane();
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		scrollPane.setBounds(12, 10, 268, 359);
@@ -175,6 +177,7 @@ public class OmokServer extends JFrame implements ActionListener {
 		selectServer.setRoomList(roomList);
 		selectServer.setRoomMemList(roomMemList);
 		selectServer.setConUsersLabel(conUsersLabel);
+		selectServer.setOmokServer(this);
 		serverThread = new Thread(selectServer);
 		serverThread.start();
 		startBtn.setEnabled(false);
@@ -206,5 +209,9 @@ public class OmokServer extends JFrame implements ActionListener {
 		catch (Exception e) {
 			selectServer.Log("Error : NoteBtn 대상이 없습니다.");
 		}
+	}
+	
+	public void setScrollBottom() {
+		scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getMaximum());
 	}
 }

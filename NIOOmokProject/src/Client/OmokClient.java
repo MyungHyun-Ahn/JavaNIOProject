@@ -19,7 +19,10 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
+import Omok.OmokGUI;
 import Packet.PacketMessage;
 import Packet.RoomInfo;
 import Packet.UserInfo;
@@ -46,11 +49,14 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	private JList<String> Room_List = new JList<>(); // 전체 방 목록 리스트
 	private JTextArea chatArea = new JTextArea(); // 채팅창 변수
 	private JButton chatQuit_btn = new JButton("채팅종료");
-
+	JScrollPane scrollPane;
+	
+	// 오목 게임
+	private OmokGUI omokGUI;
 
 	
 	// 클라이언트 관리
-	private String My_Room = ""; // 내가 참여한 채팅방
+	private String roomName = ""; // 내가 참여한 채팅방
 	
 	private String ip = "";
 	private String id = "";
@@ -90,11 +96,13 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	    ip_tf.setBounds(92, 162, 116, 21);
 	    login_pane.add(ip_tf);
 	    ip_tf.setColumns(10);
+	    ip_tf.setText("127.0.0.1");
 
 	    port_tf = new JTextField();
 	    port_tf.setBounds(92, 199, 116, 21);
 	    login_pane.add(port_tf);
 	    port_tf.setColumns(10);
+	    port_tf.setText("4242");
 	    id_tf = new JTextField();
 	    id_tf.setBounds(92, 242, 116, 21);
 	    login_pane.add(id_tf);
@@ -128,6 +136,20 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	    채팅방.setBounds(12, 225, 97, 15);
 	    contentPane.add(채팅방);
 	    Room_List.setBounds(12, 240, 108, 107);
+	    Room_List.addListSelectionListener(new ListSelectionListener() {
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				JList<String> source = (JList<String>) e.getSource();
+				int selectedIndex = source.getSelectedIndex();
+				if (selectedIndex != -1) {
+					joinroom_btn.setEnabled(true);
+				}
+				else {
+					joinroom_btn.setEnabled(false);
+				}
+				
+			}
+	    });
 	    contentPane.add(Room_List); // 채팅방 목록 JLIST
 
 	    joinroom_btn.setBounds(6, 357, 60, 23);
@@ -139,7 +161,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	    create_room_btn.setBounds(12, 386, 108, 23);
 	    contentPane.add(create_room_btn); // 채팅방 생성
 
-	    JScrollPane scrollPane = new JScrollPane();
+	    scrollPane = new JScrollPane();
 	    scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 	    scrollPane.setBounds(142, 16, 340, 363);
@@ -178,7 +200,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	         handleNoteSendButtonClick();
 	     } else if (e.getSource() == joinroom_btn) {
 	    	 System.out.println("join room button clicked");
-	         // handleJoinRoomButtonClick();
+	         handleJoinRoomButtonClick();
 	     } else if (e.getSource() == create_room_btn) {
 	    	 System.out.println("create room button clicked");
 	         handleCreateRoomButtonClick();
@@ -190,8 +212,32 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	         handleChatQuitButtonClick();
 	     } else if (e.getSource() == exitroom_btn) {
 	    	 System.out.println("exit room button clicked");
-	         // handleExitRoomButtonClick();
+	         handleExitRoomButtonClick();
 	     }
+	}
+
+	private void handleJoinRoomButtonClick() {
+		// TODO Auto-generated method stub
+		String room = (String) Room_List.getSelectedValue();
+		if (room == null)
+			return;
+		
+		joinroom_btn.setEnabled(false);
+		
+		PacketMessage msg = new PacketMessage();
+		msg.makeEnterRoomReq(new RoomInfo(room), new UserInfo(id));
+		selectClient.sendPacket(msg);
+	}
+
+	private void handleExitRoomButtonClick() {
+		// TODO Auto-generated method stub
+		PacketMessage msg = new PacketMessage();
+		msg.makeLeaveRoomReq(new RoomInfo(roomName), new UserInfo(id));
+		selectClient.sendPacket(msg);
+		System.out.println(roomName + " 방 퇴장");
+		roomName = "";
+		
+		omokGUI.handleWindowClose();
 	}
 
 	private void handleLoginButtonClick() {
@@ -267,7 +313,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	private void sendChat() {
 		String chatMsg = msg_tf.getText().trim();
 		
-		if (chatMsg.isEmpty())
+		if (isEmpty(msg_tf))
 			return;
 		
 		PacketMessage msg = new PacketMessage();
@@ -298,7 +344,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 		
 		System.out.println("Send Create Room Packet : RoomName = " + roomName);
 	}
-
+	
 	public void keyPressed(KeyEvent e) {
 	}
 
@@ -310,5 +356,36 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 
 	public void keyTyped(KeyEvent e) {
 	}
+	
+	// 오목 관련
+	public OmokGUI createOmokGUI() {
+		omokGUI = new OmokGUI(this, selectClient);
+		omokGUI.setVisible(true);
+		setExitBtnEnabled(true);
+		return omokGUI;
+	}
+	
+	public void setExitBtnEnabled(boolean option) {
+		exitroom_btn.setEnabled(option);
+	}
 
+	public void setRoomName(String roomName) {
+		this.roomName = roomName;
+	}
+	
+	public String getRoomName() {
+		return this.roomName;
+	}
+	
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+	
+	public void setScrollBottom() {
+		scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getMaximum());
+	}
 }

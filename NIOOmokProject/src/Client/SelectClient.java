@@ -16,6 +16,7 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
 
+import Omok.OmokGUI;
 import Packet.PacketCode;
 import Packet.PacketMessage;
 import Util.CastingUtil;
@@ -37,9 +38,12 @@ public class SelectClient implements Runnable  {
 	private JTextArea chatArea;
 	
 	private OmokClient omokClient;
+	private OmokGUI omokGUI;
+	
 	Vector<String> userVc = new Vector<String>(); // 가입자 목록
 	Vector<String> roomVc = new Vector<String>(); // 채팅방 목록
 	
+	String userName = ""; // 자기 이름
 	String roomName = ""; // 현재 가입 중인 방 이름
 	
 	public SelectClient(String host, int port) {
@@ -157,6 +161,7 @@ public class SelectClient implements Runnable  {
 			handleRoomInfoInfo(msg);
 			break;
 		case PacketCode.ROOMDEL_INFO:
+			handleRoomDelInfo(msg);
 			break;
 			
 		// 방 관련 패킷 처리
@@ -164,14 +169,18 @@ public class SelectClient implements Runnable  {
 			handleCreateRoomRes(msg);
 			break;
 		case PacketCode.ENTERROOM_RES:
+			handleEnterRoomRes(msg);
 			break;
 		case PacketCode.LEAVEROOM_RES:
 			break;
 		case PacketCode.ROOMUSERENTER_INFO:
+			handleRoomUserEnterInfo(msg);
 			break;
 		case PacketCode.ROOMUSERLEAVE_INFO:
+			handleRoomUserLeaveInfo(msg);
 			break;
-		case PacketCode.ROOMCHAT_RES:
+		case PacketCode.ROOMCHAT_NOTI:
+			handleRoomChatNoti(msg);
 			break;
 		}
 		
@@ -184,11 +193,60 @@ public class SelectClient implements Runnable  {
 		bytes = null;
     }
 
+	private void handleRoomChatNoti(PacketMessage msg) {
+		// TODO Auto-generated method stub
+		omokGUI.addChatArea(msg.getUserInfo().getName() + " : " + msg.getChatMsg());
+		
+	}
+
+	private void handleRoomDelInfo(PacketMessage msg) {
+		// TODO Auto-generated method stub
+		String delRoomName = msg.getRoomInfo().getName();
+		roomVc.remove(delRoomName);
+		roomList.setListData(roomVc);
+	}
+
+	private void handleRoomUserLeaveInfo(PacketMessage msg) {
+		// TODO Auto-generated method stub
+		String userName = msg.getUserInfo().getName();
+		System.out.println("Room User Remove "+ userName);
+		omokGUI.removeUserList(userName);
+	}
+
+	private void handleRoomUserEnterInfo(PacketMessage msg) {
+		// TODO Auto-generated method stub
+		String userName = msg.getUserInfo().getName();
+		omokGUI.addUserList(userName);
+	}
+
+	private void handleEnterRoomRes(PacketMessage msg) {
+		// TODO Auto-generated method stub
+		if (msg.getStatusCode() == PacketCode.ISROOMFULL) {
+			JOptionPane.showMessageDialog(omokClient, "방이 가득 찼습니다.", "실패", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		else if(msg.getStatusCode() == PacketCode.SUCCESS) {
+			System.out.println("방 입장 성공");
+			
+			roomName = msg.getRoomInfo().getName();
+			
+			omokGUI = omokClient.createOmokGUI();
+			omokGUI.setCommentTf("게임 대기중...");
+			omokGUI.addUserList(userName);
+			omokClient.setRoomName(roomName);
+			
+			JOptionPane.showMessageDialog(omokClient, "방 입장 성공", roomName + " 생성", JOptionPane.INFORMATION_MESSAGE);
+		}
+		
+		
+	}
+
 	private void handleLoginRes(PacketMessage msg) {
 		short statusCode = msg.getStatusCode();
 		if (statusCode == PacketCode.SUCCESS) {
 			System.out.println("login success!");
-			userVc.add(msg.getUserInfo().getName());
+			userName = msg.getUserInfo().getName();
+			userVc.add(userName);
 			userList.setListData(userVc);
 		}
 		if (statusCode == PacketCode.CONFLICT) {
@@ -223,6 +281,7 @@ public class SelectClient implements Runnable  {
 	
 	private void handleChatNoti(PacketMessage msg) {
 		chatArea.append(msg.getChatMsg());
+		omokClient.setScrollBottom();
 	}
 	
 	private void handleRoomInfoInfo(PacketMessage msg) {
@@ -245,13 +304,19 @@ public class SelectClient implements Runnable  {
 			roomVc.add(roomName);
 			roomList.setListData(roomVc);
 			
+			omokGUI = omokClient.createOmokGUI();
+			omokGUI.setCommentTf("게임 대기중...");
+			omokGUI.addUserList(userName);
+			
+			omokClient.setRoomName(roomName);
+			
 			JOptionPane.showMessageDialog(omokClient, "방 생성 성공", roomName + " 생성", JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
 	
 	public void sendPacket(PacketMessage msg) {
 		sender.sendPacket(msg);
-		System.out.println("Packet enqueue : " + msg.getUserInfo().getName());
+		// System.out.println("Packet enqueue : " + msg.getUserInfo().getName());
 	}
 
 	public void stopClient() {

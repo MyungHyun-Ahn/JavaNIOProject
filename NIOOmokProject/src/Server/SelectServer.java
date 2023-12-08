@@ -50,6 +50,8 @@ public class SelectServer implements Runnable {
 	private JList<String> roomList;
 	private JList<String> roomMemList;
 	
+	private OmokServer omokServer;
+	
 	private JLabel conUsersLabel;
 	
 	// private static final ExecutorService threadPool = Executors.newFixedThreadPool(4); // 스레드 풀 (스레드 개수를 4개로 제한) 
@@ -243,6 +245,15 @@ public class SelectServer implements Runnable {
 			case PacketCode.CREATEROOM_REQ:
 				handleCreateRoomReq(channel, msg);
 				break;
+			case PacketCode.ENTERROOM_REQ:
+				handleEnterRoomReq(channel, msg);
+				break;
+			case PacketCode.LEAVEROOM_REQ:
+				handleLeaveRoomReq(channel, msg);
+				break;
+			case PacketCode.ROOMCHAT_REQ:
+				handleRoomChatReq(channel, msg);
+				break;
 			}
 		}
 		
@@ -252,6 +263,89 @@ public class SelectServer implements Runnable {
 		} catch (ClosedChannelException e) {
 			// TODO Auto-generated catch block
 			LogError("OP_READ 실패");
+		}
+	}
+		
+
+	private void handleRoomChatReq(SocketChannel channel, PacketMessage msg) {
+		// TODO Auto-generated method stub
+		RoomInfo roomInfo = getRoomInfo(msg.getRoomInfo().getName());
+		UserInfo userInfo = getUserInfo(msg.getUserInfo().getName());
+	
+		PacketMessage notiMsg = new PacketMessage();
+		notiMsg.makeRoomChatNoti(PacketCode.SUCCESS, roomInfo, userInfo, msg.getChatMsg());
+	
+		for (UserInfo u : roomInfo.getUserList()) {
+			sendResPacket(u.getSocketChannel(), notiMsg);
+		}
+	}
+
+	private void handleEnterRoomReq(SocketChannel channel, PacketMessage msg) {
+		// TODO Auto-generated method stub
+		PacketMessage resMsg = new PacketMessage();
+		RoomInfo roomInfo = getRoomInfo(msg.getRoomInfo().getName());
+		UserInfo userInfo = getUserInfo(msg.getUserInfo().getName());
+		
+		if (roomInfo.isRoomFull()) { // 방이 가득 참
+			resMsg.makeEnterRoomRes(PacketCode.ISROOMFULL, null);
+			sendResPacket(channel, resMsg);
+			return;
+		}
+		
+		
+		roomInfo.EnterUser(userInfo);
+		Log(roomInfo.getName() + "에 " + userInfo.getName() + " 가입");
+		resMsg.makeEnterRoomRes(PacketCode.SUCCESS, roomInfo);
+		sendResPacket(channel, resMsg);
+		
+		
+		// 방에 원래 있던 유저도 알려주기
+		ArrayList<UserInfo> roomUserList = roomInfo.getUserList();
+		for (UserInfo u : roomUserList) {
+			if (!u.getName().equals(userInfo.getName())) { // 자기 자신이 아닌 경우
+				PacketMessage info = new PacketMessage();
+				info.makeRoomUserEnterInfo(roomInfo, userInfo); // 자기 자신이 입장했다고 알림
+				sendResPacket(u.getSocketChannel(), info);
+				
+				PacketMessage info2 = new PacketMessage();
+				info2.makeRoomUserEnterInfo(roomInfo, u); // 자기 자신에게 원래 있던 유저의 정보를 보냄
+				sendResPacket(channel, info2);
+			}
+		}
+	}
+
+	private void handleLeaveRoomReq(SocketChannel channel, PacketMessage msg) {
+		// TODO Auto-generated method stub
+		RoomInfo roomInfo = getRoomInfo(msg.getRoomInfo().getName());
+		UserInfo userInfo = getUserInfo(msg.getUserInfo().getName());
+		
+		PacketMessage info = new PacketMessage();
+		info.makeRoomUserLeaveInfo(roomInfo, userInfo);
+		
+		// 어떤 유저가 나갔는지 알려주기
+		for (UserInfo u : roomInfo.getUserList()) {
+			sendResPacket(u.getSocketChannel(), info);
+		}
+		
+		roomInfo.leaveUser(userInfo);
+		
+		PacketMessage resMsg = new PacketMessage();
+		resMsg.makeLeaveRoomRes(PacketCode.SUCCESS, roomInfo);
+		
+		if (roomInfo.getUserList().size() == 0) { // 방이 비었으면 방 삭제
+			// 모든 유저에게 방이 삭제 되었다고 알리기
+			Log(roomInfo.getName() + " 방 삭제");
+			
+			PacketMessage removeRoomMsg = new PacketMessage();
+			removeRoomMsg.makeRoomDelInfo(roomInfo);
+			
+			broadcast(null, removeRoomMsg);
+			
+			rooms.remove(roomInfo);
+			roomVc.remove(roomInfo.getName());
+			roomList.setListData(roomVc);
+			
+			return; // 방이 비었으므로 뒷 작업은 필요없음
 		}
 	}
 
@@ -369,7 +463,6 @@ public class SelectServer implements Runnable {
 		}
 		
 		// 방 생성 가능!
-		
 		RoomInfo roomInfo = new RoomInfo(roomName);
 		
 		resMsg.makeCreateRoomRes(PacketCode.SUCCESS, roomInfo);
@@ -481,10 +574,13 @@ public class SelectServer implements Runnable {
 	// 로그 textArea에 추가
 	public void Log(String str) {
 		textArea.append("INFO : " + str + "\n");
+		omokServer.setScrollBottom();
+		
 	}
 	
 	public void LogError(String str) {
 		textArea.append("ERROR : "+ str + "\n");
+		omokServer.setScrollBottom();
 	}
 	
 	public void stopServer() {
@@ -516,6 +612,16 @@ public class SelectServer implements Runnable {
 		return ret;
 	}
 	
+	public RoomInfo getRoomInfo(String id) {
+		RoomInfo ret = null;
+		for (RoomInfo r : rooms) {
+			if (r.getName().equals(id))
+				ret = r;
+		}
+		
+		return ret;
+	}
+	
 	public void setClientList(JList<String> clientList) {
 		this.clientList = clientList;
 	}
@@ -530,5 +636,9 @@ public class SelectServer implements Runnable {
 
 	public void setConUsersLabel(JLabel conUsersLabel) {
 		this.conUsersLabel = conUsersLabel;
+	}
+
+	public void setOmokServer(OmokServer omokServer) {
+		this.omokServer = omokServer;
 	}
 }
