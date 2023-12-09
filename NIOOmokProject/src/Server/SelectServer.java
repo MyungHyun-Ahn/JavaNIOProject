@@ -34,6 +34,10 @@ import Util.SerializeUtil;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+
+// 192.168.35.1
+// 공유기 IP 주소
+
 public class SelectServer implements Runnable {
 	private Selector selector; // Non-Blocking 소켓 통신을 위한 Selector
 	private ServerSocketChannel serverChannel;	// 클라이언트들의 접속을 승인할 서버 소켓 채널
@@ -254,6 +258,14 @@ public class SelectServer implements Runnable {
 			case PacketCode.ROOMCHAT_REQ:
 				handleRoomChatReq(channel, msg);
 				break;
+				
+			// 게임 관련 요청 패킷 처리
+			case PacketCode.GAMESTART_REQ:
+				handleGameStartReq(channel, msg);
+				break;
+			case PacketCode.GAMEINPUT_REQ:
+				handleGameInputReq(channel, msg);
+				break;
 			}
 		}
 		
@@ -266,6 +278,86 @@ public class SelectServer implements Runnable {
 		}
 	}
 		
+
+	private void handleGameInputReq(SocketChannel channel, PacketMessage msg) {
+		// TODO Auto-generated method stub
+		RoomInfo gameRoomInfo = getRoomInfo(msg.getRoomInfo().getName());
+		UserInfo userInfo = getUserInfo(msg.getUserInfo().getName());
+		
+		short[] input = msg.getUserInput();
+		short gameCode = gameRoomInfo.setOmokPos(msg.getColorCode(), input[0], input[1]);
+		
+		// Log("gameCode = " + gameCode + ", y = " + msg.getUserInput()[0] + ", x = " + msg.getUserInput()[1]);
+		
+		// 그럴일 없겠지만 실패한 경우
+		if (!(gameCode >= 0 && gameCode < 3)) {
+			PacketMessage resMsg = new PacketMessage();
+			resMsg.makeGameInputRes(PacketCode.FAILURE);
+			sendPacket(channel, resMsg);
+			LogError("Invalid Omok Pos");
+			return ;
+		}
+		
+		PacketMessage resMsg = new PacketMessage();
+		resMsg.makeGameInputRes(PacketCode.SUCCESS);
+		sendPacket(channel, resMsg);
+		
+		UserInfo nextUser = null;
+		for (UserInfo u : gameRoomInfo.getUserList()) {
+			if (!u.equals(userInfo)) {
+				nextUser = u;
+			}
+		}
+		
+		// 각자에게 결과 전달
+		if (gameCode == PacketCode.NONE) {
+			for (UserInfo u : gameRoomInfo.getUserList()) {
+				PacketMessage resultMsg = new PacketMessage();
+				resultMsg.makeGameResultInfo(PacketCode.NONE, gameRoomInfo, nextUser, msg.getColorCode(), input);
+				sendPacket(u.getSocketChannel(), resultMsg);
+			}
+		}
+		else if (gameCode == msg.getColorCode()) { // 패킷 보낸 사람 승리
+			for (UserInfo u : gameRoomInfo.getUserList()) {
+				if (u.equals(userInfo)) {
+					PacketMessage resultMsg = new PacketMessage();
+					resultMsg.makeGameResultInfo(PacketCode.WINNER, gameRoomInfo, u, msg.getColorCode(), input);
+					sendPacket(u.getSocketChannel(), resultMsg);
+					Log(gameRoomInfo.getName() +" 방의 게임 종료 : " + userInfo.getName() + " 승리");
+				}
+				else {
+					PacketMessage resultMsg = new PacketMessage();
+					resultMsg.makeGameResultInfo(PacketCode.LOSER, gameRoomInfo, u, msg.getColorCode(), msg.getUserInput());
+					sendPacket(u.getSocketChannel(), resultMsg);
+				}
+			}
+		}
+	}
+
+	private void handleGameStartReq(SocketChannel channel, PacketMessage msg) {
+		// TODO Auto-generated method stub
+		RoomInfo gameRoomInfo = getRoomInfo(msg.getRoomInfo().getName());
+		UserInfo startUserInfo = getUserInfo(msg.getUserInfo().getName());
+		
+		Log(gameRoomInfo.getName() + " 방에서 게임 시작");
+		
+		gameRoomInfo.setGameRunning(true);
+		gameRoomInfo.initOmokMap();
+		
+		for (UserInfo u : users) {
+			if (u.equals(startUserInfo)) { // 게임 시작 유저가 흑돌
+				PacketMessage startRes = new PacketMessage();
+				startRes.makeGameStartRes(PacketCode.SUCCESS, gameRoomInfo, startUserInfo, PacketCode.COLOR_BLACK);
+				sendPacket(channel, startRes);
+			}
+			else { // 백돌 - 어차피 방의 유저는 2명
+				PacketMessage startRes = new PacketMessage();
+				startRes.makeGameStartRes(PacketCode.SUCCESS, gameRoomInfo, startUserInfo, PacketCode.COLOR_WHITE);
+				sendPacket(u.getSocketChannel(), startRes);
+			}
+		}
+		
+	}
 
 	private void handleRoomChatReq(SocketChannel channel, PacketMessage msg) {
 		// TODO Auto-generated method stub
@@ -322,31 +414,34 @@ public class SelectServer implements Runnable {
 		PacketMessage info = new PacketMessage();
 		info.makeRoomUserLeaveInfo(roomInfo, userInfo);
 		
+		roomInfo.leaveUser(userInfo);
+		
 		// 어떤 유저가 나갔는지 알려주기
 		for (UserInfo u : roomInfo.getUserList()) {
 			sendResPacket(u.getSocketChannel(), info);
 		}
 		
-		roomInfo.leaveUser(userInfo);
-		
 		PacketMessage resMsg = new PacketMessage();
 		resMsg.makeLeaveRoomRes(PacketCode.SUCCESS, roomInfo);
 		
 		if (roomInfo.getUserList().size() == 0) { // 방이 비었으면 방 삭제
-			// 모든 유저에게 방이 삭제 되었다고 알리기
-			Log(roomInfo.getName() + " 방 삭제");
-			
-			PacketMessage removeRoomMsg = new PacketMessage();
-			removeRoomMsg.makeRoomDelInfo(roomInfo);
-			
-			broadcast(null, removeRoomMsg);
-			
-			rooms.remove(roomInfo);
-			roomVc.remove(roomInfo.getName());
-			roomList.setListData(roomVc);
-			
+			deleteRoom(roomInfo);
 			return; // 방이 비었으므로 뒷 작업은 필요없음
 		}
+	}
+	
+	private void deleteRoom(RoomInfo roomInfo) {
+		// 모든 유저에게 방이 삭제 되었다고 알리기
+		Log(roomInfo.getName() + " 방 삭제");
+					
+		PacketMessage removeRoomMsg = new PacketMessage();
+		removeRoomMsg.makeRoomDelInfo(roomInfo);
+					
+		broadcast(null, removeRoomMsg);
+					
+		rooms.remove(roomInfo);
+		roomVc.remove(roomInfo.getName());
+		roomList.setListData(roomVc);
 	}
 
 	private void handleLoginReq(SocketChannel channel, PacketMessage msg) {
@@ -476,6 +571,7 @@ public class SelectServer implements Runnable {
 		UserInfo userInfo = getUserInfo(msg.getUserInfo().getName());
 		roomInfo.EnterUser(userInfo);
 		Log(roomInfo.getName() + " 방 생성");
+		
 						
 		// 모든 유저에게 방 정보 전달
 		PacketMessage createRoomInfo = new PacketMessage();
@@ -544,7 +640,6 @@ public class SelectServer implements Runnable {
 	
 	// 클라이언트 연결이 끊어지면 보내는 메시지
 	private void clientDisconnected(SocketChannel channel) {
-		PacketMessage msg = new PacketMessage();
 		
 		UserInfo deleteUser = null;
 		for (UserInfo u : users) {
@@ -557,6 +652,25 @@ public class SelectServer implements Runnable {
 		if (deleteUser == null)
 			return;
 		
+		// 방에서 접속 종료
+		RoomInfo delRoom = deleteUser.getRoomInfo();
+		if (delRoom != null) {
+			PacketMessage outRoomMsg = new PacketMessage();
+			outRoomMsg.makeRoomUserLeaveInfo(delRoom, deleteUser);
+			
+			delRoom.leaveUser(deleteUser);
+			
+			
+			if (delRoom.getUserList().size() == 0) // 방이 0명이 되면 삭제
+				deleteRoom(delRoom);
+			
+			for (UserInfo u : delRoom.getUserList()) {
+				sendResPacket(u.getSocketChannel(), outRoomMsg); // 방 유저에게 나갔음을 알려주기
+			}
+		}
+		
+		// 접속 종료 처리
+		PacketMessage msg = new PacketMessage();
 		msg.makeLeaveUserInfo(deleteUser);
 		Log("Leave User : " + deleteUser.getName());
 		broadcast(channel, msg);
@@ -564,9 +678,6 @@ public class SelectServer implements Runnable {
 		clientList.setListData(userVc);
 		conUsersLabel.setText(userVc.size() + "명");
 		users.remove(deleteUser);
-		
-		// TODO : 접속 중인 방에서도 지워주기
-		// room remove
 		
 		broadcast(null, msg);
 	}

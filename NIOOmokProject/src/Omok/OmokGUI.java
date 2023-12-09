@@ -9,6 +9,7 @@ import javax.swing.border.EmptyBorder;
 
 import Client.OmokClient;
 import Client.SelectClient;
+import Packet.PacketCode;
 import Packet.PacketMessage;
 import Packet.RoomInfo;
 import Packet.UserInfo;
@@ -54,11 +55,12 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 	
 	private OmokClient omokClient;
 	private SelectClient selectClient;
-
+	private MouseAction mouseAction;
+	
 	/**
 	 * Create the frame.
 	 */
-	public OmokGUI(OmokClient omokClient, SelectClient selectClient) {
+	public OmokGUI(String roomName, OmokClient omokClient, SelectClient selectClient) {
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {
 			@Override
@@ -70,8 +72,9 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		
-		setTitle("Omok Game");
+		setTitle(roomName);
 		setContentPane(contentPane);
+		setResizable(false);
 		contentPane.setLayout(null);
 		gameLogic = new GameLogic();
 		
@@ -80,11 +83,11 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 		
 		omokMap = new MapManager(gameLogic);
 		omokMap.setBounds(10, 10, 587, 587);
-		omokMap.init();
 		contentPane.add(omokMap);
 		
-		MouseAction mouseAction = new MouseAction(omokMap, gameLogic, this);
-		addMouseListener(mouseAction);
+		mouseAction = new MouseAction(omokMap, gameLogic, this, selectClient);
+		// addMouseListener(mouseAction);
+		// removeMouseListener(mouseAction); 
 		
 		JLabel gameInfoLabel = new JLabel("해설");
 		gameInfoLabel.setFont(gameInfoLabel.getFont().deriveFont(gameInfoLabel.getFont().getStyle() | Font.BOLD, gameInfoLabel.getFont().getSize() + 3f));
@@ -110,7 +113,7 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 		gameStartBtn = new JButton("게임 시작");
 		gameStartBtn.setFont(gameStartBtn.getFont().deriveFont(gameStartBtn.getFont().getStyle() | Font.BOLD, gameStartBtn.getFont().getSize() + 3f));
 		gameStartBtn.setBounds(622, 164, 285, 40);
-		gameStartBtn.setEnabled(false);
+		gameStartBtn.setEnabled(true);
 		contentPane.add(gameStartBtn);
 		
 		scrollPane = new JScrollPane();
@@ -167,7 +170,19 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 	
 	private void handleGameStartBtnClick() {
 		// TODO Auto-generated method stub
+		if (!checkCanGameStart()) {
+			JOptionPane.showMessageDialog(this, "시작 인원이 충분하지 않습니다.", "게임 시작 불가", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
 		
+		PacketMessage gameStartMsg = new PacketMessage();
+		gameStartMsg.makeGameStartReq(new RoomInfo(omokClient.getRoomName()), new UserInfo(omokClient.getId()));
+		selectClient.sendPacket(gameStartMsg);
+		System.out.println("게임 시작 요청 전송");
+	}
+	
+	private boolean checkCanGameStart() {
+		return gameUserVc.size() >= 2;
 	}
 
 	private void handleSendButtonClick() {
@@ -210,12 +225,19 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 		gameUserVc.add(userName);
 		gameUsers.setListData(gameUserVc);
 		setUserCountLabel();
+		
+		
 	}
 	
 	public void removeUserList(String userName) {
 		gameUserVc.remove(userName);
 		gameUsers.setListData(gameUserVc);
 		setUserCountLabel();
+		
+		if (gameLogic.isGameRunning()) {
+			endGame();
+			JOptionPane.showMessageDialog(this, "상대방의 접속 종료로 승리하셨습니다.", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
 	
 	public void addChatArea(String msg) {
@@ -249,5 +271,52 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 			omokClient.setExitBtnEnabled(false);
 			dispose();
 		}
+	}
+	
+	public void gameStart(short color, UserInfo userInfo) {
+		addMouseListener(mouseAction);
+		
+		String startMsg = "";
+		if (color == PacketCode.COLOR_BLACK) {
+			startMsg = "당신은 흑돌입니다. 선공";
+		}
+		else if (color == PacketCode.COLOR_WHITE) {
+			startMsg = "당신은 백돌입니다. 후공";
+		}
+		
+		JOptionPane.showMessageDialog(this, startMsg, "게임 시작", JOptionPane.INFORMATION_MESSAGE);
+		
+		gameLogic.init(new RoomInfo(omokClient.getRoomName()), new UserInfo(omokClient.getId()), omokMap);
+		omokMap.repaint();
+		gameLogic.setColor(color);
+		gameLogic.setSelectClient(selectClient);
+		gameLogic.setGameRunning(true);
+		commentTf.setText(gameLogic.getTurn() + " : " + userInfo.getName() + "님 차례입니다.");
+	}
+	
+	public void gameResult(PacketMessage msg) {
+		short[] input = msg.getUserInput();
+		
+		gameLogic.setPos(msg.getColorCode(), (int)input[0], (int)input[1]);
+		switch (msg.getStatusCode()) {
+		case PacketCode.NONE: // 게임 진행
+			gameLogic.setTurn(gameLogic.getTurn() + 1);
+			commentTf.setText(gameLogic.getTurn() + " : " + msg.getUserInfo().getName() + "님 차례입니다.");
+			break;
+		case PacketCode.WINNER: // 승리
+			endGame();
+			JOptionPane.showMessageDialog(this, msg.getUserInfo().getName() + "님은 승리하셨습니다!!!", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
+			break;
+		case PacketCode.LOSER: // 패배
+			endGame();
+			JOptionPane.showMessageDialog(this, msg.getUserInfo().getName() + "님은 패배하셨습니다...", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
+			break;
+		}
+	}
+	
+	public void endGame() {
+		commentTf.setText("게임 대기중...");
+		gameLogic.setGameRunning(false);
+		removeMouseListener(mouseAction);
 	}
 }

@@ -19,6 +19,7 @@ import javax.swing.border.EmptyBorder;
 
 import Packet.PacketCode;
 import Packet.PacketMessage;
+import Packet.RoomInfo;
 import Packet.UserInfo;
 
 public class OmokServer extends JFrame implements ActionListener {
@@ -60,7 +61,7 @@ public class OmokServer extends JFrame implements ActionListener {
 	
 	private void initializeGUI() {
 		setTitle("Omok Server Application");
-		
+		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 520, 500);
 		contentPane = new JPanel();
@@ -166,10 +167,18 @@ public class OmokServer extends JFrame implements ActionListener {
 	    }
 	    else if (e.getSource() == roomMemCheck) {
 	    	System.out.println("Room Member Check button clicked");
-	    	// stopServer();
+	    	handleRoomMemCheck();
 	    }
 	}
 	
+	private void handleRoomMemCheck() {
+		// TODO Auto-generated method stub
+		String room = (String) roomList.getSelectedValue();
+		RoomInfo roomInfo = selectServer.getRoomInfo(room);
+		roomMemLabel.setText(room + " 방 참여자 목록");
+		roomMemList.setListData(roomInfo.getUserVc());
+	}
+
 	private void startServer() {
 		int port = Integer.parseInt(portTF.getText().trim());
 		selectServer = new SelectServer(port, this.textArea);

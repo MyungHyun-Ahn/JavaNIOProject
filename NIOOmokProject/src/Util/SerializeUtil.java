@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 
 import Packet.PacketMessage;
 
-// 직렬화/역직렬화 유틸
+// Serialize Util - 직렬화/역직렬화 유틸
 public class SerializeUtil {
 	public static byte[] serialize(PacketMessage data) {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();

@@ -13,7 +13,7 @@ public class Jzlib {
 	// 데이터를 압축
 	@SuppressWarnings("deprecation")
 	public static byte[] compress(byte[] data) {
-		System.out.println("compress : "+data.length);
+		// System.out.println("compress : "+data.length);
 		try {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			ZOutputStream zOut = new ZOutputStream(out, JZlib.Z_BEST_COMPRESSION);
@@ -21,7 +21,7 @@ public class Jzlib {
 			objOut.writeObject(data);
 			objOut.close();
 			
-			System.out.println(out.toByteArray().length);
+			// System.out.println(out.toByteArray().length);
 			return out.toByteArray();
 		}
 		catch (Exception e) {

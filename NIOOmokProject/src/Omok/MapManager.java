@@ -16,10 +16,6 @@ public class MapManager extends JPanel{
 		this.gameLogic = gameLogic;
 	}
 	
-	public void init() {
-		gameLogic.init(); // 초기화
-	}
-	
 	
 	// 그리기 컴포넌트
 	@Override
@@ -32,17 +28,17 @@ public class MapManager extends JPanel{
 	
 	// 오목판 그리기
 	public void board(Graphics g) {
-		for(int i = 1; i <= MapDefine.SIZE; i++) {
-			g.drawLine(MapDefine.CELL, i * MapDefine.CELL, MapDefine.CELL * MapDefine.SIZE, i * MapDefine.CELL); 
-			g.drawLine(i * MapDefine.CELL, MapDefine.CELL, i * MapDefine.CELL , MapDefine.CELL * MapDefine.SIZE); 
+		for(int i = 1; i <= GameDefine.SIZE; i++) {
+			g.drawLine(GameDefine.CELL, i * GameDefine.CELL, GameDefine.CELL * GameDefine.SIZE, i * GameDefine.CELL); 
+			g.drawLine(i * GameDefine.CELL, GameDefine.CELL, i * GameDefine.CELL , GameDefine.CELL * GameDefine.SIZE); 
 		}
 	}
 	
 	
 	// 돌 그리기
 	public void drawStone(Graphics g) {
-			for(int y=0; y < MapDefine.SIZE; y++){
-				for(int x = 0; x < MapDefine.SIZE; x++){
+			for(int y=0; y < GameDefine.SIZE; y++){
+				for(int x = 0; x < GameDefine.SIZE; x++){
 					if(gameLogic.getOmokMap()[y][x]==1)
 						drawBlack(g,x,y);
 					else if(gameLogic.getOmokMap()[y][x]==2)
@@ -53,12 +49,12 @@ public class MapManager extends JPanel{
 
 	public void drawBlack(Graphics g, int x, int y) {
 		g.setColor(Color.BLACK);
-		g.fillOval(x * MapDefine.CELL + 14, y * MapDefine.CELL + 14, STONE_SIZE, STONE_SIZE);
+		g.fillOval(x * GameDefine.CELL + 14, y * GameDefine.CELL + 14, STONE_SIZE, STONE_SIZE);
 	}
 	
 	public void drawWhite(Graphics g, int x, int y) {
 		g.setColor(Color.WHITE);
-		g.fillOval(x * MapDefine.CELL + 14, y * MapDefine.CELL + 14, STONE_SIZE, STONE_SIZE);
+		g.fillOval(x * GameDefine.CELL + 14, y * GameDefine.CELL + 14, STONE_SIZE, STONE_SIZE);
 	}
 	
 }

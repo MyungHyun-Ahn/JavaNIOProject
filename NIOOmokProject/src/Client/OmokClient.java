@@ -78,6 +78,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	    login_pane = new JPanel();
 	    login_pane.setBorder(new EmptyBorder(5, 5, 5, 5));
 	    Login_GUI.setContentPane(login_pane);
+	    Login_GUI.setResizable(false);
 	    login_pane.setLayout(null);
 
 	    JLabel 서버IP = new JLabel("Server IP");
@@ -116,6 +117,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	private void initializeMainGUI() {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	    setBounds(600, 100, 510, 460);
+	    setResizable(false);
 	    contentPane = new JPanel();
 	    contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 	    setContentPane(contentPane);
@@ -141,7 +143,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 			public void valueChanged(ListSelectionEvent e) {
 				JList<String> source = (JList<String>) e.getSource();
 				int selectedIndex = source.getSelectedIndex();
-				if (selectedIndex != -1) {
+				if (selectedIndex != -1 && roomName.equals("")) { // roomName 이 비어있으면 방에 안들어간 상태
 					joinroom_btn.setEnabled(true);
 				}
 				else {
@@ -359,7 +361,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	
 	// 오목 관련
 	public OmokGUI createOmokGUI() {
-		omokGUI = new OmokGUI(this, selectClient);
+		omokGUI = new OmokGUI(roomName, this, selectClient);
 		omokGUI.setVisible(true);
 		setExitBtnEnabled(true);
 		return omokGUI;

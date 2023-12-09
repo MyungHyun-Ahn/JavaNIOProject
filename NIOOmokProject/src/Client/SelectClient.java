@@ -46,6 +46,8 @@ public class SelectClient implements Runnable  {
 	String userName = ""; // 자기 이름
 	String roomName = ""; // 현재 가입 중인 방 이름
 	
+	private short myColor = -1;
+	
 	public SelectClient(String host, int port) {
 		try {
 			selector = Selector.open();
@@ -182,6 +184,17 @@ public class SelectClient implements Runnable  {
 		case PacketCode.ROOMCHAT_NOTI:
 			handleRoomChatNoti(msg);
 			break;
+		
+		// 게임 패킷
+		case PacketCode.GAMESTART_RES:
+			handleGameStartRes(msg);
+			break;
+		case PacketCode.GAMEINPUT_RES:
+			handleGameInputRes(msg);
+			break;
+		case PacketCode.GAMERESULT_INFO:
+			handleGameResultInfo(msg);
+			break;
 		}
 		
 		if (buf != null)
@@ -192,6 +205,23 @@ public class SelectClient implements Runnable  {
 		
 		bytes = null;
     }
+
+	private void handleGameResultInfo(PacketMessage msg) {
+		// TODO Auto-generated method stub
+		System.out.println("GAMERESULT_INFO 도착");
+		omokGUI.gameResult(msg);
+	}
+
+	private void handleGameInputRes(PacketMessage msg) {
+		// TODO Auto-generated method stub
+		// 바둑 놓기 성공 - 어차피 Info 패킷 날라옴
+	}
+
+	private void handleGameStartRes(PacketMessage msg) {
+		// TODO Auto-generated method stub
+		myColor = msg.getColorCode();
+		omokGUI.gameStart(myColor, msg.getUserInfo());
+	}
 
 	private void handleRoomChatNoti(PacketMessage msg) {
 		// TODO Auto-generated method stub
@@ -229,11 +259,11 @@ public class SelectClient implements Runnable  {
 			System.out.println("방 입장 성공");
 			
 			roomName = msg.getRoomInfo().getName();
+			omokClient.setRoomName(roomName);
 			
 			omokGUI = omokClient.createOmokGUI();
 			omokGUI.setCommentTf("게임 대기중...");
 			omokGUI.addUserList(userName);
-			omokClient.setRoomName(roomName);
 			
 			JOptionPane.showMessageDialog(omokClient, "방 입장 성공", roomName + " 생성", JOptionPane.INFORMATION_MESSAGE);
 		}
@@ -300,6 +330,7 @@ public class SelectClient implements Runnable  {
 		else if (statusCode == PacketCode.SUCCESS) {
 			// 방 생성 성공
 			roomName = msg.getRoomInfo().getName();
+			omokClient.setRoomName(roomName);
 			
 			roomVc.add(roomName);
 			roomList.setListData(roomVc);
@@ -308,15 +339,13 @@ public class SelectClient implements Runnable  {
 			omokGUI.setCommentTf("게임 대기중...");
 			omokGUI.addUserList(userName);
 			
-			omokClient.setRoomName(roomName);
-			
 			JOptionPane.showMessageDialog(omokClient, "방 생성 성공", roomName + " 생성", JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
 	
 	public void sendPacket(PacketMessage msg) {
 		sender.sendPacket(msg);
-		// System.out.println("Packet enqueue : " + msg.getUserInfo().getName());
+		System.out.println("send");
 	}
 
 	public void stopClient() {

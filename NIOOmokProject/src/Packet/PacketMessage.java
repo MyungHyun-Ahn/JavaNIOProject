@@ -10,12 +10,16 @@ public class PacketMessage implements Serializable {
 	
 	private short msgCode = PacketCode.DEFAULT;
 	private short statusCode = PacketCode.DEFAULT;
+	private short colorCode = PacketCode.DEFAULT;
+	
 	private String chatMsg; 			// 채팅 메시지일 경우
 	private String noteMsg; 			// 쪽지 메시지일 경우
 	
 	private UserInfo userInfo; 			// 누가 보냈는지
 	private UserInfo targetUserInfo; 	// 쪽지를 보낼 경우 받을 사람
-	private RoomInfo roomInfo;
+	private RoomInfo roomInfo;			// 방 정보
+	
+	private short[] userInput;			// 오목 게임 좌표 정보
 	
 	private ArrayList<UserInfo> userList; // 유저 리스트
 	private ArrayList<RoomInfo> roomList; // 방 리스트
@@ -177,6 +181,49 @@ public class PacketMessage implements Serializable {
 		serializedBytes = SerializeUtil.serialize(this);
 	}
 	
+	// 게임 관련
+	public void makeGameStartReq(RoomInfo roomInfo, UserInfo userInfo) {
+		setMsgCode(PacketCode.GAMESTART_REQ);
+		setRoomInfo(roomInfo);
+		setUserInfo(userInfo);
+		serializedBytes = SerializeUtil.serialize(this);
+	}
+	
+	public void makeGameStartRes(short statusCode, RoomInfo roomInfo, UserInfo startUser, short colorCode) {
+		setMsgCode(PacketCode.GAMESTART_RES);
+		setRoomInfo(roomInfo);
+		setUserInfo(startUser);
+		setColorCode(colorCode);
+		setStatusCode(statusCode);
+		serializedBytes = SerializeUtil.serialize(this);
+	}
+	
+	public void makeGameInputReq(RoomInfo roomInfo, UserInfo userInfo, short colorCode, short[] userInput) {
+		setMsgCode(PacketCode.GAMEINPUT_REQ);
+		setRoomInfo(roomInfo);
+		setUserInfo(userInfo);
+		setColorCode(colorCode);
+		setUserInput(userInput);
+		serializedBytes = SerializeUtil.serialize(this);
+	}
+	
+	public void makeGameInputRes(short statusCode) {
+		setMsgCode(PacketCode.GAMEINPUT_RES);
+		setStatusCode(statusCode);
+		serializedBytes = SerializeUtil.serialize(this);
+	}
+	
+	// 어디다 뒀는지 + 결과 전달
+	public void makeGameResultInfo(short gameResult, RoomInfo roomInfo, UserInfo userInfo, short colorCode, short[] userInput) {
+		setMsgCode(PacketCode.GAMERESULT_INFO);
+		setRoomInfo(roomInfo);
+		setUserInfo(userInfo);
+		setColorCode(colorCode);
+		setStatusCode(gameResult);
+		setUserInput(userInput);
+		serializedBytes = SerializeUtil.serialize(this);
+	}
+	
 	// Getter
 	public short getMsgCode() {
 		return this.msgCode;
@@ -257,5 +304,21 @@ public class PacketMessage implements Serializable {
 
 	public void setTargetUserInfo(UserInfo targetUserInfo) {
 		this.targetUserInfo = targetUserInfo;
+	}
+
+	public short getColorCode() {
+		return colorCode;
+	}
+
+	public void setColorCode(short colorCode) {
+		this.colorCode = colorCode;
+	}
+
+	public short[] getUserInput() {
+		return userInput;
+	}
+
+	public void setUserInput(short[] userInput) {
+		this.userInput = userInput;
 	}
 }
