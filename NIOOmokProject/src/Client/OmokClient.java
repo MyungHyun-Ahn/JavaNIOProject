@@ -238,7 +238,7 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 		selectClient.sendPacket(msg);
 		System.out.println(roomName + " 방 퇴장");
 		roomName = "";
-		
+		joinroom_btn.setEnabled(true);
 		omokGUI.handleWindowClose();
 	}
 
@@ -261,11 +261,6 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 		id = id_tf.getText().trim();
 
 		network();
-		
-		// Main GUI 표시 및 Login GUI 숨기기
-		this.setVisible(true);
-		this.Login_GUI.setVisible(false);
-		setTitle("사용자: " + id);
 	}
 	
 	private void network() {
@@ -275,15 +270,27 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 			selectClient.setRoom_List(Room_List);
 			selectClient.setChatArea(chatArea);
 			selectClient.setOmokClient(this);
+			
 			clientThread = new Thread(selectClient);
 			clientThread.start();
+
 		}
 		
-		PacketMessage msg = new PacketMessage();
-		UserInfo userInfo = new UserInfo(id);
-		msg.makeLoginReq(userInfo);
+		try {
+			PacketMessage msg = new PacketMessage();
+			UserInfo userInfo = new UserInfo(id);
+			msg.makeLoginReq(userInfo);
+			selectClient.sendPacket(msg);
+		}
+		catch (Exception e){
+			JOptionPane.showMessageDialog(Login_GUI, "서버 접속에 실패했습니다.", "접속 실패", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
 		
-		selectClient.sendPacket(msg);
+		// Main GUI 표시 및 Login GUI 숨기기
+		this.setVisible(true);
+		this.Login_GUI.setVisible(false);
+		setTitle("사용자: " + id);
 	}
 	
 	private void handleNoteSendButtonClick() {
@@ -370,7 +377,11 @@ public class OmokClient extends JFrame implements ActionListener, KeyListener {
 	public void setExitBtnEnabled(boolean option) {
 		exitroom_btn.setEnabled(option);
 	}
-
+	
+	public void setJoinBtnEnabled(boolean option) {
+		joinroom_btn.setEnabled(option);
+	}
+	
 	public void setRoomName(String roomName) {
 		this.roomName = roomName;
 	}

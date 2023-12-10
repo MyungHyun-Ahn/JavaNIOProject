@@ -97,6 +97,7 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 		commentTf = new JTextField();
 		commentTf.setText("ex) xxx 차례입니다.");
 		commentTf.setBounds(622, 249, 285, 26);
+		commentTf.setEditable(false);
 		contentPane.add(commentTf);
 		commentTf.setColumns(10);
 		
@@ -172,6 +173,10 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 		// TODO Auto-generated method stub
 		if (!checkCanGameStart()) {
 			JOptionPane.showMessageDialog(this, "시작 인원이 충분하지 않습니다.", "게임 시작 불가", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		
+		if (gameLogic.isGameRunning()) {
 			return;
 		}
 		
@@ -269,12 +274,14 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 			leaveMsg.makeLeaveRoomReq(new RoomInfo(roomName), new UserInfo(userName));
 			selectClient.sendPacket(leaveMsg);
 			omokClient.setExitBtnEnabled(false);
+			omokClient.setJoinBtnEnabled(true);
 			dispose();
 		}
 	}
 	
 	public void gameStart(short color, UserInfo userInfo) {
 		addMouseListener(mouseAction);
+		gameStartBtn.setEnabled(false);
 		
 		String startMsg = "";
 		if (color == PacketCode.COLOR_BLACK) {
@@ -317,6 +324,7 @@ public class OmokGUI extends JFrame implements ActionListener, KeyListener {
 	public void endGame() {
 		commentTf.setText("게임 대기중...");
 		gameLogic.setGameRunning(false);
+		gameStartBtn.setEnabled(true);
 		removeMouseListener(mouseAction);
 	}
 }
