@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>E:\project_2023\NIOProject\JavaNIOProject\Out\server.jar</jar>
+  <outfile>E:\project_2023\NIOProject\JavaNIOProject\Out\Server.exe</outfile>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://java.com/download</downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>E:\project_2023\NIOProject\JavaNIOProject\Out\Server.ico</icon>
+  <classPath>
+    <mainClass>Server.Main</mainClass>
+    <cp>.</cp>
+  </classPath>
+  <jre>
+    <path>OpenJDK</path>
+    <requiresJdk>false</requiresJdk>
+    <requires64Bit>false</requires64Bit>
+    <minVersion>1.7.0</minVersion>
+    <maxVersion></maxVersion>
+  </jre>
+</launch4jConfig>

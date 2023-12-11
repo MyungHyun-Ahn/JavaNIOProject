@@ -1,0 +1,60 @@
+
+
+Version:	3.50
+CmdLine:	E:\project_2023\NIOProject\JavaNIOProject\Out\Server.exe --l4j-debug
+JNI:		No
+WOW64:		Yes
+Working dir:	E:\project_2023\NIOProject\JavaNIOProject\Out\.
+Requires JDK:	No
+Requires 64-Bit: No
+Java min ver:	1.007.000
+Java max ver:	
+JRE paths:	OpenJDK
+Check launcher:	E:\project_2023\NIOProject\JavaNIOProject\Out\OpenJDK\bin\javaw.exe (OK)
+Version string: 1.017.000_008 / 64-Bit (OK)
+Main class:	Server.Main
+Add classpath:	.
+Launcher:	E:\project_2023\NIOProject\JavaNIOProject\Out\OpenJDK\bin\javaw.exe
+Launcher args:	-classpath "E:\project_2023\NIOProject\JavaNIOProject\Out\Server.exe;." Server.Main
+Args length:	83/32768 chars
+Exit code:	0
+
+
+Version:	3.50
+CmdLine:	E:\project_2023\NIOProject\JavaNIOProject\Out\Server.exe --l4j-debug
+JNI:		No
+WOW64:		Yes
+Working dir:	E:\project_2023\NIOProject\JavaNIOProject\Out\.
+Requires JDK:	No
+Requires 64-Bit: No
+Java min ver:	1.007.000
+Java max ver:	
+JRE paths:	OpenJDK
+Check launcher:	E:\project_2023\NIOProject\JavaNIOProject\Out\OpenJDK\bin\javaw.exe (OK)
+Version string: 1.017.000_008 / 64-Bit (OK)
+Main class:	Server.Main
+Add classpath:	.
+Launcher:	E:\project_2023\NIOProject\JavaNIOProject\Out\OpenJDK\bin\javaw.exe
+Launcher args:	-classpath "E:\project_2023\NIOProject\JavaNIOProject\Out\Server.exe;." Server.Main
+Args length:	83/32768 chars
+Exit code:	0
+
+
+Version:	3.50
+CmdLine:	E:\project_2023\NIOProject\JavaNIOProject\Out\Client.exe --l4j-debug
+JNI:		No
+WOW64:		Yes
+Working dir:	E:\project_2023\NIOProject\JavaNIOProject\Out\.
+Requires JDK:	No
+Requires 64-Bit: No
+Java min ver:	1.007.000
+Java max ver:	
+JRE paths:	OpenJDK
+Check launcher:	E:\project_2023\NIOProject\JavaNIOProject\Out\OpenJDK\bin\javaw.exe (OK)
+Version string: 1.017.000_008 / 64-Bit (OK)
+Main class:	Client.Main
+Add classpath:	.
+Launcher:	E:\project_2023\NIOProject\JavaNIOProject\Out\OpenJDK\bin\javaw.exe
+Launcher args:	-classpath "E:\project_2023\NIOProject\JavaNIOProject\Out\Client.exe;." Client.Main
+Args length:	83/32768 chars
+Exit code:	0
