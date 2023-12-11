@@ -58,6 +58,8 @@ public class SelectServer implements Runnable {
 	
 	private JLabel conUsersLabel;
 	
+	private boolean useGUI = true;
+	
 	// private static final ExecutorService threadPool = Executors.newFixedThreadPool(4); // 스레드 풀 (스레드 개수를 4개로 제한) 
 	
 	// 생성자
@@ -75,6 +77,33 @@ public class SelectServer implements Runnable {
 			outPacketQueue = new LinkedList<PacketMessage>();
 			
 			this.textArea = textArea;
+			
+			serverChannel = ServerSocketChannel.open(); 				// ServerSocketChannel Open
+			serverChannel.configureBlocking(false); 					// Set Non-blocking mode
+			serverChannel.socket().bind(serverAddress); 				// 주소 정보 bind
+			serverChannel.register(selector, SelectionKey.OP_ACCEPT); 	// 비동기 accept 등록
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			LogError("Server Init : " + LocalDateTime.now());
+			return;
+		}
+	}
+	
+	public SelectServer(int portNum, boolean useGUI) {
+		try {
+			serverAddress = new InetSocketAddress(portNum);
+			
+			selector = Selector.open(); // Selector Open
+			
+			users = new ArrayList<UserInfo>(); // User 정보를 담는 ArrayList
+			userVc = new Vector<String>();
+			rooms = new ArrayList<RoomInfo>();
+			roomVc = new Vector<String>();
+			
+			outPacketQueue = new LinkedList<PacketMessage>();
+			
+			this.useGUI = useGUI;
 			
 			serverChannel = ServerSocketChannel.open(); 				// ServerSocketChannel Open
 			serverChannel.configureBlocking(false); 					// Set Non-blocking mode
@@ -441,7 +470,9 @@ public class SelectServer implements Runnable {
 					
 		rooms.remove(roomInfo);
 		roomVc.remove(roomInfo.getName());
-		roomList.setListData(roomVc);
+		
+		if (useGUI)
+			roomList.setListData(roomVc);
 	}
 
 	private void handleLoginReq(SocketChannel channel, PacketMessage msg) {
@@ -460,8 +491,11 @@ public class SelectServer implements Runnable {
 		Log("Enter User : " + userInfo.getName());
 		users.add(userInfo); // userInfo를 저장
 		userVc.add(userInfo.getName());
-		clientList.setListData(userVc);
-		conUsersLabel.setText(userVc.size() + "명");
+		
+		if (useGUI) {
+			clientList.setListData(userVc);
+			conUsersLabel.setText(userVc.size() + "명");	
+		}
 		resMsg.makeLoginRes(PacketCode.SUCCESS, userInfo);
 		sendResPacket(channel, resMsg); // response 패킷을 보낸다!
 			
@@ -565,12 +599,13 @@ public class SelectServer implements Runnable {
 		
 		rooms.add(roomInfo);
 		roomVc.add(roomName);
-		roomList.setListData(roomVc);
+		if (useGUI)
+			roomList.setListData(roomVc);
 		
 		// 유저 방 입장 시키기
 		UserInfo userInfo = getUserInfo(msg.getUserInfo().getName());
 		roomInfo.EnterUser(userInfo);
-		Log(roomInfo.getName() + " 방 생성");
+		Log(userInfo.getName() + " : " + roomInfo.getName() + " 방 생성");
 		
 						
 		// 모든 유저에게 방 정보 전달
@@ -684,14 +719,24 @@ public class SelectServer implements Runnable {
 	
 	// 로그 textArea에 추가
 	public void Log(String str) {
-		textArea.append("INFO : " + str + "\n");
-		omokServer.setScrollBottom();
+		if (useGUI) {
+			textArea.append("INFO : " + str + "\n");
+			omokServer.setScrollBottom();
+		}
+		else {
+			System.out.println("INFO : " + str);
+		}
 		
 	}
 	
 	public void LogError(String str) {
-		textArea.append("ERROR : "+ str + "\n");
-		omokServer.setScrollBottom();
+		if (useGUI) {
+			textArea.append("ERROR : "+ str + "\n");
+			omokServer.setScrollBottom();
+		}
+		else {
+			System.err.println("ERROR : "+ str);
+		}
 	}
 	
 	public void stopServer() {

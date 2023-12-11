@@ -54,15 +54,17 @@ public class OmokServer extends JFrame implements ActionListener {
 	// 서버 구동용 스레드
 	Thread serverThread;
 	
+	private boolean useGUI = true;
+	
 	public OmokServer() {
 		initializeGUI();
 		setupActionListeners();
 	}
 	
-	public OmokServer(int port) {
-		initializeGUI();
-		setupActionListeners();
-		startAwsServer(port);
+	public OmokServer(int port, boolean useGUI) {
+		// initializeGUI();
+		// setupActionListeners();
+		startAwsServer(port, false);
 	}
 	
 	private void initializeGUI() {
@@ -199,17 +201,10 @@ public class OmokServer extends JFrame implements ActionListener {
 		stopBtn.setEnabled(true);
 	}
 	
-	private void startAwsServer(int port) {
-		selectServer = new SelectServer(port, this.textArea);
-		selectServer.setClientList(clientList);
-		selectServer.setRoomList(roomList);
-		selectServer.setRoomMemList(roomMemList);
-		selectServer.setConUsersLabel(conUsersLabel);
-		selectServer.setOmokServer(this);
+	private void startAwsServer(int port, boolean useGUI) {
+		selectServer = new SelectServer(port, useGUI);
 		serverThread = new Thread(selectServer);
 		serverThread.start();
-		startBtn.setEnabled(false);
-		stopBtn.setEnabled(true);
 	}
 	
 	private void stopServer() {
