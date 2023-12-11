@@ -201,6 +201,7 @@ public class SelectServer implements Runnable {
 				try {
 					clientDisconnected(channel); // 접속 끊기
 					channel.close();
+					Log("접속 종료");
 					return;
 				}
 				catch (Exception e) {
@@ -710,8 +711,12 @@ public class SelectServer implements Runnable {
 		Log("Leave User : " + deleteUser.getName());
 		broadcast(channel, msg);
 		userVc.remove(deleteUser.getName());
-		clientList.setListData(userVc);
-		conUsersLabel.setText(userVc.size() + "명");
+		
+		if (useGUI) {
+			clientList.setListData(userVc);
+			conUsersLabel.setText(userVc.size() + "명");
+		}
+		
 		users.remove(deleteUser);
 		
 		broadcast(null, msg);
