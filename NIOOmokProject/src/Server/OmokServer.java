@@ -59,6 +59,12 @@ public class OmokServer extends JFrame implements ActionListener {
 		setupActionListeners();
 	}
 	
+	public OmokServer(int port) {
+		initializeGUI();
+		setupActionListeners();
+		startAwsServer(port);
+	}
+	
 	private void initializeGUI() {
 		setTitle("Omok Server Application");
 		setResizable(false);
@@ -181,6 +187,19 @@ public class OmokServer extends JFrame implements ActionListener {
 
 	private void startServer() {
 		int port = Integer.parseInt(portTF.getText().trim());
+		selectServer = new SelectServer(port, this.textArea);
+		selectServer.setClientList(clientList);
+		selectServer.setRoomList(roomList);
+		selectServer.setRoomMemList(roomMemList);
+		selectServer.setConUsersLabel(conUsersLabel);
+		selectServer.setOmokServer(this);
+		serverThread = new Thread(selectServer);
+		serverThread.start();
+		startBtn.setEnabled(false);
+		stopBtn.setEnabled(true);
+	}
+	
+	private void startAwsServer(int port) {
 		selectServer = new SelectServer(port, this.textArea);
 		selectServer.setClientList(clientList);
 		selectServer.setRoomList(roomList);
