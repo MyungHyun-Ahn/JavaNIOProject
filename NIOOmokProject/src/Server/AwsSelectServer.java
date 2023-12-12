@@ -1,6 +1,5 @@
 package Server;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -18,12 +17,6 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Vector;
 
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-
 import Packet.PacketCode;
 import Packet.PacketMessage;
 import Packet.RoomInfo;
@@ -31,11 +24,7 @@ import Packet.UserInfo;
 import Util.CastingUtil;
 import Util.SerializeUtil;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-
-public class SelectServer implements Runnable {
+public class AwsSelectServer implements Runnable {
 	private Selector selector; // Non-Blocking 소켓 통신을 위한 Selector
 	private ServerSocketChannel serverChannel;	// 클라이언트들의 접속을 승인할 서버 소켓 채널
 	private InetSocketAddress serverAddress;	// 서버의 주소를 가지는 객체
@@ -46,21 +35,10 @@ public class SelectServer implements Runnable {
 	private ArrayList<RoomInfo> rooms; // RoomInfo를 저장하는 ArrayList
 	private Vector<String> roomVc;
 	
-	private JTextArea textArea;
-	private JList<String> clientList;
-	private JList<String> roomList;
-	private JList<String> roomMemList;
-	
-	private OmokServer omokServer;
-	
-	private JLabel conUsersLabel;
-	
-	private boolean useGUI = true;
-	
 	// private static final ExecutorService threadPool = Executors.newFixedThreadPool(4); // 스레드 풀 (스레드 개수를 4개로 제한) 
 	
 	// 생성자
-	public SelectServer(int portNum, JTextArea textArea) {
+	public AwsSelectServer(int portNum) {
 		try {
 			serverAddress = new InetSocketAddress(portNum);
 			
@@ -72,35 +50,6 @@ public class SelectServer implements Runnable {
 			roomVc = new Vector<String>();
 			
 			outPacketQueue = new LinkedList<PacketMessage>();
-			
-			this.textArea = textArea;
-			
-			serverChannel = ServerSocketChannel.open(); 				// ServerSocketChannel Open
-			serverChannel.configureBlocking(false); 					// Set Non-blocking mode
-			serverChannel.socket().bind(serverAddress); 				// 주소 정보 bind
-			serverChannel.register(selector, SelectionKey.OP_ACCEPT); 	// 비동기 accept 등록
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			LogError("Server Init : " + LocalDateTime.now());
-			return;
-		}
-	}
-	
-	public SelectServer(int portNum, boolean useGUI) {
-		try {
-			serverAddress = new InetSocketAddress(portNum);
-			
-			selector = Selector.open(); // Selector Open
-			
-			users = new ArrayList<UserInfo>(); // User 정보를 담는 ArrayList
-			userVc = new Vector<String>();
-			rooms = new ArrayList<RoomInfo>();
-			roomVc = new Vector<String>();
-			
-			outPacketQueue = new LinkedList<PacketMessage>();
-			
-			this.useGUI = useGUI;
 			
 			serverChannel = ServerSocketChannel.open(); 				// ServerSocketChannel Open
 			serverChannel.configureBlocking(false); 					// Set Non-blocking mode
@@ -468,9 +417,6 @@ public class SelectServer implements Runnable {
 					
 		rooms.remove(roomInfo);
 		roomVc.remove(roomInfo.getName());
-		
-		if (useGUI)
-			roomList.setListData(roomVc);
 	}
 
 	private void handleLoginReq(SocketChannel channel, PacketMessage msg) {
@@ -490,10 +436,6 @@ public class SelectServer implements Runnable {
 		users.add(userInfo); // userInfo를 저장
 		userVc.add(userInfo.getName());
 		
-		if (useGUI) {
-			clientList.setListData(userVc);
-			conUsersLabel.setText(userVc.size() + "명");	
-		}
 		resMsg.makeLoginRes(PacketCode.SUCCESS, userInfo);
 		sendResPacket(channel, resMsg); // response 패킷을 보낸다!
 			
@@ -597,8 +539,6 @@ public class SelectServer implements Runnable {
 		
 		rooms.add(roomInfo);
 		roomVc.add(roomName);
-		if (useGUI)
-			roomList.setListData(roomVc);
 		
 		// 유저 방 입장 시키기
 		UserInfo userInfo = getUserInfo(msg.getUserInfo().getName());
@@ -708,12 +648,6 @@ public class SelectServer implements Runnable {
 		Log("Leave User : " + deleteUser.getName());
 		broadcast(channel, msg);
 		userVc.remove(deleteUser.getName());
-		
-		if (useGUI) {
-			clientList.setListData(userVc);
-			conUsersLabel.setText(userVc.size() + "명");
-		}
-		
 		users.remove(deleteUser);
 		
 		broadcast(null, msg);
@@ -721,24 +655,11 @@ public class SelectServer implements Runnable {
 	
 	// 로그 textArea에 추가
 	public void Log(String str) {
-		if (useGUI) {
-			textArea.append("INFO : " + str + "\n");
-			omokServer.setScrollBottom();
-		}
-		else {
-			System.out.println("INFO : " + str);
-		}
-		
+		System.out.println("INFO : " + str);
 	}
 	
 	public void LogError(String str) {
-		if (useGUI) {
-			textArea.append("ERROR : "+ str + "\n");
-			omokServer.setScrollBottom();
-		}
-		else {
-			System.err.println("ERROR : "+ str);
-		}
+		System.err.println("ERROR : "+ str);
 	}
 	
 	public void stopServer() {
@@ -778,25 +699,5 @@ public class SelectServer implements Runnable {
 		}
 		
 		return ret;
-	}
-	
-	public void setClientList(JList<String> clientList) {
-		this.clientList = clientList;
-	}
-
-	public void setRoomMemList(JList<String> roomMemList) {
-		this.roomMemList = roomMemList;
-	}
-
-	public void setRoomList(JList<String> roomList) {
-		this.roomList = roomList;
-	}
-
-	public void setConUsersLabel(JLabel conUsersLabel) {
-		this.conUsersLabel = conUsersLabel;
-	}
-
-	public void setOmokServer(OmokServer omokServer) {
-		this.omokServer = omokServer;
 	}
 }
