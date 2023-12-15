@@ -39,6 +39,6 @@ public class MouseAction extends MouseAdapter{
 		}
 		
 		gameLogic.input(y, x);
-		map.repaint();
+		// map.repaint();
 	}
 }

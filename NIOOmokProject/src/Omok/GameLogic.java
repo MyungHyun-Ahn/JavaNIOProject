@@ -62,7 +62,7 @@ public class GameLogic {
 		PacketMessage sendMyInput = new PacketMessage();
 		sendMyInput.makeGameInputReq(myRoom, myUser, (short)color, new short[]{(short)y, (short)x});
 		selectClient.sendPacket(sendMyInput);
-		omokMap[y][x] = color;
+		// omokMap[y][x] = color;
 	}
 	
 	// 승자 판별 로직 - 서버에서만 판정 진행

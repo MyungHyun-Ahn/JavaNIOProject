@@ -138,11 +138,15 @@ public class SelectServer implements Runnable {
 				while (keys.hasNext()) {
 					SelectionKey key = keys.next();
 					
-					if (key.isAcceptable()) // Accept는 메인 스레드에서 진행
+					if (key.isAcceptable()) { // Accept는 메인 스레드에서 진행
+						Log("Can Accept 가능");
 						Accept(key);
+					}
 					
-					if (key.isReadable())
+					if (key.isReadable()) {
+						Log("Can Read");
 						Read(key);
+					}
 					
 					try {
 						if (key.isWritable())
@@ -176,6 +180,7 @@ public class SelectServer implements Runnable {
 			Log(channel.toString() + " 클라이언트가 접속했습니다.");
 		}
 		catch (Exception e) {
+			e.printStackTrace();
 			LogError("클라이언트 접속 실패! : " + LocalDateTime.now());
 		}
 	}
@@ -221,6 +226,7 @@ public class SelectServer implements Runnable {
 			}
 		}
 		catch (Exception e) { // 클라이언트가 전송 도중 끊겼을 경우 처리
+			e.printStackTrace();
 			clientDisconnected(channel);
 			return;
 		}
@@ -237,6 +243,7 @@ public class SelectServer implements Runnable {
 			channel.register(selector, SelectionKey.OP_WRITE); // 비동기 WRITE 예약
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
+			e.printStackTrace();
 			LogError("OP_WRITE 실패");
 			return;
 		}	
